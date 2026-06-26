@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "quantum-signing",
+  "owner": "pagerguild",
+  "repo": "guilde-lite",
+  "path": "marketplace/plugins/agentic-flow/skills/quantum-signing",
+  "branch": "main",
+  "sha": "60e5ca36979f0fc455dc758cc02e749869642c07",
+  "source": "manual"
+}

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "adaptive-wfo-epoch",
+  "owner": "terrylica",
+  "repo": "cc-skills",
+  "path": "plugins/quant-research/skills/adaptive-wfo-epoch",
+  "branch": "main",
+  "sha": "9e2b7147b65b30328195c85a0f624e2f2ecd9e47",
+  "source": "manual"
+}

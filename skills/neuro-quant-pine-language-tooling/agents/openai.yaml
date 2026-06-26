@@ -1,0 +1,14 @@
+interface:
+  display_name: "Pine Language Tooling"
+  short_description: "Use pinelsp, Pine Script docs, and conversion checks for TradingView strategy translation."
+  default_prompt: "Use $neuro-quant-pine-language-tooling for this neuro-quant workflow."
+policy:
+  allow_implicit_invocation: true
+  require_resource_map_first: true
+resources:
+  local:
+    - references/resource-map.md
+    - references/verification-checklist.md
+  full_docs:
+    - deep-tool-wiki
+    - neuro-link/02-KB-main

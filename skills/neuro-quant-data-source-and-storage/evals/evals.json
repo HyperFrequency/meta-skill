@@ -1,0 +1,38 @@
+{
+  "skill": "neuro-quant-data-source-and-storage",
+  "positive_cases": [
+    {
+      "prompt": "Use neuro-quant resources to handle market data source.",
+      "must_open": [
+        "references/resource-map.md"
+      ],
+      "must_mention": [
+        "deep-tool-wiki/poly-data/wiki.md",
+        "neuro-link/02-KB-main/poly-data/index.md"
+      ]
+    },
+    {
+      "prompt": "I am in a long workflow and need select market data sources, preserve source-first layout, and route raw versus derived storage decisions. without context rot.",
+      "must_open": [
+        "references/handoff-template.md"
+      ],
+      "must_mention": [
+        "handoff",
+        "next verification"
+      ]
+    }
+  ],
+  "false_positive_cases": [
+    {
+      "prompt": "Explain finance at a high level without using local repo resources.",
+      "must_not_claim": [
+        "opened deep-tool-wiki",
+        "verified local repo"
+      ]
+    }
+  ],
+  "missing_resource_case": {
+    "prompt": "Find full docs for poly_data.",
+    "expected_behavior": "Report existing docs when present; otherwise cite the generated stub as a todo, not an authority."
+  }
+}

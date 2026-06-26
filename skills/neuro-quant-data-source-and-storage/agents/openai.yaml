@@ -1,0 +1,14 @@
+interface:
+  display_name: "Data Source And Storage"
+  short_description: "Select market data sources, preserve source-first layout, and route raw versus derived storage decisions."
+  default_prompt: "Use $neuro-quant-data-source-and-storage for this neuro-quant workflow."
+policy:
+  allow_implicit_invocation: true
+  require_resource_map_first: true
+resources:
+  local:
+    - references/resource-map.md
+    - references/verification-checklist.md
+  full_docs:
+    - deep-tool-wiki
+    - neuro-link/02-KB-main

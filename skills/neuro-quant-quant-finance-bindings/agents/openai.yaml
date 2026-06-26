@@ -1,0 +1,14 @@
+interface:
+  display_name: "Quant Finance Bindings"
+  short_description: "Use QuantLib bindings and reporting/risk resources for pricing, curves, and risk workflows."
+  default_prompt: "Use $neuro-quant-quant-finance-bindings for this neuro-quant workflow."
+policy:
+  allow_implicit_invocation: true
+  require_resource_map_first: true
+resources:
+  local:
+    - references/resource-map.md
+    - references/verification-checklist.md
+  full_docs:
+    - deep-tool-wiki
+    - neuro-link/02-KB-main

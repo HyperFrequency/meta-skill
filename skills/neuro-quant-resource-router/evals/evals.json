@@ -1,0 +1,38 @@
+{
+  "skill": "neuro-quant-resource-router",
+  "positive_cases": [
+    {
+      "prompt": "Use neuro-quant resources to handle which neuro-quant skill should handle this.",
+      "must_open": [
+        "references/resource-map.md"
+      ],
+      "must_mention": [
+        "deep-tool-wiki/vectorbtpro/wiki.md",
+        "neuro-link/02-KB-main/vectorbtpro/index.md"
+      ]
+    },
+    {
+      "prompt": "I am in a long workflow and need route long neuro-quant tasks to the smallest relevant skill, local resource, kb leaf, or deep-tool-wiki page. without context rot.",
+      "must_open": [
+        "references/handoff-template.md"
+      ],
+      "must_mention": [
+        "handoff",
+        "next verification"
+      ]
+    }
+  ],
+  "false_positive_cases": [
+    {
+      "prompt": "Explain finance at a high level without using local repo resources.",
+      "must_not_claim": [
+        "opened deep-tool-wiki",
+        "verified local repo"
+      ]
+    }
+  ],
+  "missing_resource_case": {
+    "prompt": "Find full docs for vectorbt.pro.",
+    "expected_behavior": "Report existing docs when present; otherwise cite the generated stub as a todo, not an authority."
+  }
+}

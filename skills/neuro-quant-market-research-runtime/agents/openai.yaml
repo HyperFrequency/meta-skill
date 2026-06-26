@@ -1,0 +1,14 @@
+interface:
+  display_name: "Market Research Runtime"
+  short_description: "Work on vectorized research, event-driven execution, HFT backtests, and performance proof surfaces."
+  default_prompt: "Use $neuro-quant-market-research-runtime for this neuro-quant workflow."
+policy:
+  allow_implicit_invocation: true
+  require_resource_map_first: true
+resources:
+  local:
+    - references/resource-map.md
+    - references/verification-checklist.md
+  full_docs:
+    - deep-tool-wiki
+    - neuro-link/02-KB-main

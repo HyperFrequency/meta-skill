@@ -1,0 +1,14 @@
+interface:
+  display_name: "Execution UI Ops"
+  short_description: "Operate Nautilus admin, prediction, and web UI repos without mixing UI, strategy, and execution state."
+  default_prompt: "Use $neuro-quant-execution-ui-ops for this neuro-quant workflow."
+policy:
+  allow_implicit_invocation: true
+  require_resource_map_first: true
+resources:
+  local:
+    - references/resource-map.md
+    - references/verification-checklist.md
+  full_docs:
+    - deep-tool-wiki
+    - neuro-link/02-KB-main

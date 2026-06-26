@@ -1,0 +1,38 @@
+{
+  "skill": "neuro-quant-pine-language-tooling",
+  "positive_cases": [
+    {
+      "prompt": "Use neuro-quant resources to handle convert Pine strategy.",
+      "must_open": [
+        "references/resource-map.md"
+      ],
+      "must_mention": [
+        "deep-tool-wiki/pinelsp/wiki.md",
+        "neuro-link/02-KB-main/pinelsp/index.md"
+      ]
+    },
+    {
+      "prompt": "I am in a long workflow and need use pinelsp, pine script docs, and conversion checks for tradingview strategy translation. without context rot.",
+      "must_open": [
+        "references/handoff-template.md"
+      ],
+      "must_mention": [
+        "handoff",
+        "next verification"
+      ]
+    }
+  ],
+  "false_positive_cases": [
+    {
+      "prompt": "Explain finance at a high level without using local repo resources.",
+      "must_not_claim": [
+        "opened deep-tool-wiki",
+        "verified local repo"
+      ]
+    }
+  ],
+  "missing_resource_case": {
+    "prompt": "Find full docs for pinelsp.",
+    "expected_behavior": "Report existing docs when present; otherwise cite the generated stub as a todo, not an authority."
+  }
+}
