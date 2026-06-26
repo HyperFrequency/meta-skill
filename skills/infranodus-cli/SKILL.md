@@ -1,5 +1,6 @@
 ---
-name: infranodus
+name: infranodus-cli
+id: infranodus-cli
 description: >
   Text network analysis, knowledge graphs, content gap detection, SEO/GEO optimization,
   structured memory, and text comparison via the InfraNodus MCP server (mcporter).

@@ -1,7 +1,7 @@
 ---
 name: coherence-sweep
 description: Run a full coherence sweep across the Brain Dependency Graph - computes staleness, lifecycle transitions, structural health, and generates a report
-argument-hint: [--days N] [--tensions] [--json]
+argument-hint: "[--days N] [--tensions] [--json]"
 allowed-tools: [Bash, Read, Write]
 user-invocable: true
 automation: gated
