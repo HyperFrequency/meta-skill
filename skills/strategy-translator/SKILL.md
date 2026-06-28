@@ -1,21 +1,49 @@
 ---
 name: strategy-translator
 description: >
-  Translate and extrapolate trading strategies across code formats (basic Python, vectorbt,
-  NautilusTrader Python, NautilusTrader Rust, Pine Script v6, C++) and across human
-  formats (spoken/blog/social media, academic papers). Use whenever the user wants to
-  port a strategy between frameworks, rewrite a Pine Script idea in vectorbt or Nautilus,
-  turn a research paper into runnable code, draft a Twitter/blog explainer of an existing
-  strategy, or vice versa. Trigger even when the user does not say "translate" — phrases
-  like "port this to Nautilus", "make this work in vectorbt", "give me the Rust version",
-  "explain this strategy on Twitter", "what would this look like as a paper", or "I read a
-  paper, can you implement it" all qualify. Always invoke this skill before hand-rolling
-  any cross-framework strategy port.
+  Translate and extrapolate trading strategies across code formats (basic Python,
+  vectorbt, NautilusTrader Python/Rust, Pine Script v6, C++) and human formats
+  (blog/social, papers). Owns cross-framework porting; siblings delegate ports here.
+  Use to port strategies between frameworks, turn a paper into code, or draft a
+  blog/Twitter explainer. Trigger even without the word "translate" on phrases like
+  "port this to Nautilus", "make this work in vectorbt", "give me the Rust version",
+  "explain this on Twitter", "what would this look like as a paper", or "I read a
+  paper, can you implement it". For vectorized backtest AUTHORING/sweeps use vectorbt;
+  for the event-driven ENGINE or live/Hyperliquid execution use nautilus-trader; to
+  verify a backtest vs an Optuna/Ray baseline use strategy-verify; for walk-forward
+  EPOCH selection use adaptive-wfo-epoch; for purged CV/PBO/deflated-Sharpe use
+  model-evaluation; for tearsheets/MAE/leverage use tearsheet-generator; for
+  VPIN/OFI/L2 order-flow use microstructure-analyst.
 version: "2.0.0"
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent
+license: HyperFrequency original (citations to external academic + library work)
+metadata:
+    skill-author: HyperFrequency
+    skill-domain: software-engineering
+    style: translation
 ---
 
 # Strategy Translator
+
+Turns one representation of a trading strategy into another — across code frameworks
+(*translate*) or between code and human/academic prose (*extrapolate*). It owns the
+cross-framework porting layer: sibling skills route their port requests here.
+
+## When to use
+
+- Porting a strategy from one framework to another — e.g. "port this Pine Script to
+  NautilusTrader" or "rewrite this vectorbt backtest in Rust".
+- Turning a research paper or blog/Twitter description of a strategy into runnable code.
+- Producing a human-readable explainer (blog post, Twitter thread, academic write-up)
+  from an existing strategy implementation.
+- Rendering the same strategy in multiple formats off one behavioral contract (e.g.
+  vectorbt for sweeps + Nautilus for live).
+- Any time you would otherwise hand-roll a cross-framework strategy port — invoke this
+  skill first so API drift and fill-timing traps are caught.
+
+For vectorbt-native authoring (not porting) use `vectorbt`; for the event-driven engine
+or live deployment use `nautilus-trader`; see the full delegation table under
+**Cross-links to sibling skills** below.
 
 ## Required tooling — the unified gateway contract
 
@@ -392,6 +420,47 @@ strategy in:
 Each version is followed by a **Diff vs basic Python** explanation. Read this file
 end-to-end before your first translation — every reference file in this skill assumes
 you've internalized the patterns there.
+
+## Cross-links to sibling skills
+
+This skill owns cross-framework / cross-format porting. Hand off everything else:
+
+| When the user wants… | Use sibling | Why not this skill |
+|---|---|---|
+| Vectorized backtest authoring, parameter sweeps, `IndicatorFactory`, `Portfolio.from_signals`, `Splitter` walk-forward | `vectorbt` | vectorbt owns native authoring; we only port *into / out of* vectorbt |
+| The event-driven backtest ENGINE, venue/execution mechanics, live + Hyperliquid deployment | `nautilus-trader` | Nautilus owns the engine + deployment; we only port *into / out of* Nautilus |
+| Compare a backtest's results to an Optuna/Ray optimization baseline; root-cause logic discrepancies | `strategy-verify` | we translate; we don't verify result parity against an optimizer baseline |
+| Walk-Forward Optimization EPOCH selection / overfitting-epoch control | `adaptive-wfo-epoch` | WFE epoch control is its own discipline |
+| Purged/embargoed/combinatorial-purged CV, PBO, deflated Sharpe — "is this Sharpe real" | `model-evaluation` | financial-ML validation, not translation |
+| Performance tearsheets, MAE analysis, optimal-leverage recommendation | `tearsheet-generator` | tearsheet generation (quantstats-rs) is its own skill |
+| VPIN / OFI / Kyle / micro-price indicators, order-book reconstruction, HFT data wiring | `microstructure-analyst` | microstructure indicator pipeline, not translation |
+| Distributed HPO infra (Optuna/Ray/Dask/MLflow fan-out, Postgres storage) | `neuro-quant-distributed-optimization` | distributed optimization infrastructure |
+
+When a port also needs one of the above (e.g. "port this to vectorbt **and** sweep the
+params"), do the translation here, then delegate the sweep / verify / tearsheet step to
+the sibling.
+
+## References
+
+Upstream frameworks this skill translates across (verify the live API surface before
+emitting — see **Required tooling — the unified gateway contract**):
+
+- vectorbt / vectorbt-pro — https://vectorbt.dev/ , https://vectorbt.pro/
+- NautilusTrader — https://nautilustrader.io/ , https://github.com/nautechsystems/nautilus_trader
+- Pine Script v6 — https://www.tradingview.com/pine-script-docs/
+- Pine tooling — `folknor/pine-tools` (pine-lsp / pine-validate),
+  `zelosleone/pinescript-vsc-server-rust` (tree-sitter-pine)
+- C++ stdlib — https://en.cppreference.com/
+
+Deep-dive references shipped with this skill:
+
+- `references/mtf-ema-cross-example.md` — canonical 8-format worked example
+- `references/pinescript-v6.md` — Pine semantics + pitfall catalogue
+- `references/vectorbt-pro.md` — VBT Pro target guidance
+- `references/nautilus.md` — Nautilus Python + Rust target guidance
+
+License: HyperFrequency original (citations to external academic + library work).
+Last cross-checked: 2026-06-27.
 
 ---
 

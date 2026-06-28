@@ -1,10 +1,26 @@
 ---
 name: nautilus-trader
 description: >
-  NautilusTrader algorithmic trading platform for strategy development and live trading.
-  Use when building trading strategies, backtesting, or deploying to Hyperliquid.
+  Event-driven backtest ENGINE + live deployment with NautilusTrader: venue/execution
+  mechanics (OMS, fill sim, margin/netting accounts, order types), the Parquet data catalog,
+  and Hyperliquid mainnet trading. Use when running an
+  event-driven (tick/bar-replay) backtest, wiring a Strategy/TradingNode, configuring a Venue,
+  or going live. Trigger even without "Nautilus" on
+  phrases like "backtest this event-driven", "deploy my strategy live", "run it on
+  Hyperliquid", "set leverage on Hyperliquid", "TradingNode won't connect", "my fills look
+  wrong". For VECTORIZED backtests/sweeps/IndicatorFactory use vectorbt; to PORT a strategy to
+  Rust/Pine/vectorbt use strategy-translator; for walk-forward epoch selection use
+  adaptive-wfo-epoch; for "is this Sharpe real / PBO / purged CV" use model-evaluation; for
+  tearsheets/MAE/optimal leverage use tearsheet-generator (quantstats-rs); to compare against
+  an Optuna/Ray baseline use strategy-verify; for VPIN/OFI/L2 order-flow use
+  microstructure-analyst.
 version: "2.0.0"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+license: MIT
+metadata:
+  skill-author: HyperFrequency
+  skill-domain: event-driven-backtesting-live-execution
+  upstream: https://github.com/nautechsystems/nautilus_trader
 ---
 
 # Nautilus Trader Skill
@@ -439,6 +455,31 @@ Check that `reduce_only=True` is set on exit orders for netting accounts.
 
 ---
 
+## Anti-patterns
+
+- Importing any `nautilus_trader` symbol BEFORE `import hyperliquid_patch` — the patch must
+  apply first or live order submission silently uses the buggy Rust client.
+- Sending Hyperliquid prices with more than 5 significant figures (orders get rejected as
+  "Invalid Price"). Always route through the patch's price formatting.
+- Omitting `reduce_only=True` on exit orders for netting accounts — positions fail to close.
+- Reaching for this skill to run vectorized parameter sweeps. The event-driven engine replays
+  events bar-by-bar; for fast vectorized grids use `vectorbt`.
+- Hand-rolling a port of a strategy into Rust/Pine/vectorbt here — delegate to
+  `strategy-translator` so the cross-framework mapping stays consistent.
+
+## Cross-links to Sibling Skills
+
+| Sibling skill | Use it for |
+|---------------|-----------|
+| `vectorbt` | Vectorized backtest authoring, parameter sweeps, `IndicatorFactory`, `Portfolio.from_signals`/`from_orders`, `Splitter` walk-forward |
+| `strategy-translator` | Porting/translating a strategy across frameworks (Python ↔ vectorbt ↔ Nautilus Py/Rust ↔ Pine v6 ↔ C++ ↔ papers) |
+| `strategy-verify` | Comparing this engine's backtest results against an Optuna/Ray optimization baseline; root-causing logic discrepancies |
+| `adaptive-wfo-epoch` | Walk-forward optimization epoch selection / overfitting-epoch control |
+| `model-evaluation` | Purged/embargoed/combinatorial-purged CV, PBO, deflated Sharpe — "is this Sharpe real?" |
+| `microstructure-analyst` | VPIN/OFI/Kyle/micro-price indicators, order-book reconstruction, HFT-backtest data wiring |
+| `tearsheet-generator` | Performance tearsheets via quantstats-rs, MAE analysis, optimal-leverage recommendations |
+| `neuro-quant-distributed-optimization` | Distributed HPO infra (Optuna/Ray/Dask/MLflow/Postgres) fan-out |
+
 ## Reference Files
 
 Detailed documentation is available in `references/`:
@@ -455,3 +496,12 @@ Detailed documentation is available in `references/`:
 | `api.md` | Full API reference |
 
 Use `view` to read specific reference files when detailed information is needed.
+
+### Upstream & License
+
+- NautilusTrader (upstream): https://github.com/nautechsystems/nautilus_trader
+- Documentation: https://nautilustrader.io/docs/
+- Hyperliquid adapter bug tracked at: https://github.com/nautechsystems/nautilus_trader/issues/3152
+- Bundled Hyperliquid SDK patch license: MIT (see `references/README.md`)
+- Verified against NautilusTrader v1.222.0.
+- Last cross-checked: 2026-06-27.

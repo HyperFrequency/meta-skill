@@ -12,6 +12,17 @@ Open this file before loading full documentation. It keeps the skill useful with
 | `deeplob` | DeepLOB | `toolbox/DeepLOB` | `deep-tool-wiki/deeplob/wiki.md` | `neuro-link/02-KB-main/deeplob/index.md` | missing |
 | `tlob` | TLOB | `toolbox/TLOB` | `deep-tool-wiki/tlob/wiki.md` | `neuro-link/02-KB-main/tlob/index.md` | missing |
 
+## Local Family Docs (Level 1)
+
+Before the per-tool wiki/KB paths above, check these repo-local family notes:
+
+- `toolbox/docs/tools/oracle-ml-family.md`: shared family overview and install status.
+- `toolbox/docs/tools/h2o.md`: H2O JDK/JAVA_HOME and cluster lifecycle notes.
+- `toolbox/_pending/deeplob.md`, `toolbox/_pending/tlob.md`: packaging status for the LOB
+  research repos. If these still show no install metadata, treat DeepLOB/TLOB as
+  script/notebook work and do not invent an import path.
+- `.batch-runs/.../evidence` and current venv commands: fresh proof for any runtime claim.
+
 ## Lookup Order
 
 1. Use the source path when the question is about repo-local implementation.

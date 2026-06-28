@@ -1,6 +1,20 @@
 ---
 name: neuro-quant-resource-router
-description: Use when working in the neuro-quant monorepo on route long neuro-quant tasks to the smallest relevant skill, local resource, kb leaf, or deep-tool-wiki page. Route to local references first, then deep-tool-wiki or 02-KB-main for full documentation.
+description: >
+  Top-level entry dispatcher for the neuro-quant monorepo. Routes a task to the
+  smallest relevant skill, local resource, KB leaf, or deep-tool-wiki page, and
+  hands off to the right family router. Its tool table is the union of all the
+  family routers. Use when you must decide where to look or which skill owns a
+  task: triggers like "which skill handles X", "route this neuro-quant task",
+  "where do I look for Y", "find docs for a quant repo", or "show the resource
+  path before editing". Start here, then delegate to a family router:
+  neuro-quant-data-source-and-storage,
+  neuro-quant-distributed-optimization, neuro-quant-execution-ui-ops,
+  neuro-quant-forecasting-oracle-ml, neuro-quant-knowledge-rag-control-plane,
+  neuro-quant-market-research-runtime, neuro-quant-pine-language-tooling,
+  neuro-quant-quant-finance-bindings, or neuro-quant-research-proof. For deep
+  work that already sits inside one domain, invoke that sibling family router
+  directly instead of this dispatcher.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -8,23 +22,55 @@ allowed-tools: Read, Grep, Glob, Bash
 
 ## Scope
 
-Route long neuro-quant tasks to the smallest relevant skill, local resource, KB leaf, or deep-tool-wiki page.
+This is the **top-level entry router** for the neuro-quant monorepo — not a leaf
+skill. It triages an incoming task to the smallest relevant skill, local
+resource, KB leaf, or deep-tool-wiki page, then hands off to the matching family
+router. Its Covered Tools table is the union of every family router's table, so
+it can answer "where does this belong" across the whole monorepo before any
+domain skill is loaded.
 
 Use this skill when the task matches one of these signals:
 - which neuro-quant skill should handle this
+- route this neuro-quant task / route this strategy or backtest task
+- where do I look for a tool, repo, or doc
 - find docs for a quant repo
 - avoid context rot in a long workflow
-- route this strategy or backtest task
 - show the resource path before editing
+
+If the task is clearly already inside one domain (e.g. live execution, Pine
+syntax, forecasting models), skip this dispatcher and invoke that domain's
+family router directly.
 
 ## Required Workflow
 
 1. Restate the goal, target repo/tool, and acceptance evidence.
 2. Open `references/resource-map.md` before loading broader docs.
-3. Open `references/verification-checklist.md` for the smallest relevant proof path.
-4. Use `references/handoff-template.md` when a long workflow should move to another family skill.
-5. Load full docs only when needed from `deep-tool-wiki/<tool>/wiki.md` or `neuro-link/02-KB-main/<tool>/index.md`.
-6. Separate verified facts, assumptions, missing resources, and blocked checks in the final answer.
+3. Identify the owning family router from the table above and hand off to it; only stay in this dispatcher for cross-domain triage.
+4. Open `references/verification-checklist.md` for the smallest relevant proof path.
+5. Use `references/handoff-template.md` when a long workflow should move to another family skill.
+6. Load full docs only when needed from `deep-tool-wiki/<tool>/wiki.md` or `neuro-link/02-KB-main/<tool>/index.md`.
+7. Separate verified facts, assumptions, missing resources, and blocked checks in the final answer.
+
+## Family Routers (hand off to these)
+
+After triage, delegate to the narrowest family router that owns the task. Each
+holds its own resource map, verification gates, and guardrails for that domain.
+
+| Family router | Owns |
+| --- | --- |
+| `neuro-quant-data-source-and-storage` | market data ingest, exchange feeds, tick/LOB stores, dataset pulls |
+| `neuro-quant-distributed-optimization` | hyperparameter search, parallel/distributed runs, study backends |
+| `neuro-quant-execution-ui-ops` | live/event-driven execution, order ops, admin and web UIs |
+| `neuro-quant-forecasting-oracle-ml` | time-series and ML forecasting models, oracles, predictors |
+| `neuro-quant-knowledge-rag-control-plane` | KB navigation, RAG, doc/control-plane lookups |
+| `neuro-quant-market-research-runtime` | research/analytics runtimes and notebooks |
+| `neuro-quant-pine-language-tooling` | Pine Script, LSP/parser, strategy syntax conversion |
+| `neuro-quant-quant-finance-bindings` | pricing/quant-finance libraries and bindings |
+| `neuro-quant-research-proof` | tearsheets, proof gates, evaluation evidence |
+
+This dispatcher's Covered Tools table below is the union of these routers'
+tables; use it to find the owning family, then load that family router's
+references rather than continuing here.
 
 ## Progressive Disclosure
 

@@ -1,6 +1,6 @@
 ---
 name: generate-tearsheet
-description: Generate a comprehensive QuantStats-style tearsheet with MAE analysis
+description: Generate a comprehensive performance tear sheet (quantstats-rs) plus MAE / optimal-leverage analysis from a trades CSV
 argument-hint: "[strategy_name] [--trades PATH] [--config PATH] [--capital AMOUNT] [--output DIR]"
 ---
 
@@ -51,60 +51,49 @@ Optional columns:
 
 ## Implementation
 
-```python
-import sys
-import pandas as pd
-sys.path.insert(0, '$HOME/Desktop/dev/Backtests')
-from backtesting.tearsheets.strategy_comparison_tearsheet import StrategyComparisonTearsheet
+This command wraps `scripts/generate_tearsheet.py` (see the skill's SKILL.md). The
+performance section is rendered by the `quantstats-rs` engine; the MAE / leverage
+section by the local `tearsheet_helpers.py`.
 
-# Load trades
-trades_df = pd.read_csv(trades_path)
+```bash
+SKILL_DIR="$(dirname "$(dirname "$0")")"   # .../tearsheet-generator
+OUT_DIR="${output_dir:-./tearsheets}"
+mkdir -p "$OUT_DIR"
 
-# Generate tearsheet
-tearsheet = StrategyComparisonTearsheet(
-    strategy_name=strategy_name,
-    trades_df=trades_df,
-    initial_capital=capital,
-    output_dir=output_dir,
-    strategy_dir=strategy_dir  # Optional: for config file links
-)
+python "$SKILL_DIR/scripts/generate_tearsheet.py" \
+    --trades "$trades_path" --capital "${capital:-10000}" --mae \
+    --strategy-title "$strategy_name" \
+    -o "$OUT_DIR/${strategy_name}.html"
 
-html_path, json_path = tearsheet.generate()
-print(f"Generated: {html_path}")
-print(f"Metrics: {json_path}")
+# Produces:
+#   $OUT_DIR/${strategy_name}.html       — performance tear sheet (quantstats-rs)
+#   $OUT_DIR/${strategy_name}_mae.json   — MAE / leverage analysis
 ```
+
+Prefer `--returns returns.csv` over `--trades` when you already have an exact period
+returns series (the trades path derives daily returns as net-PnL/capital).
 
 ## Output
 
 The command generates:
 
-1. **HTML Tearsheet** (`{strategy}_comparison.html`)
-   - Two-column QuantStats layout
-   - IBM Plex Mono font
-   - SVG charts (cumulative returns, underwater, rolling metrics)
-   - MAE analysis with leverage recommendations
-   - Fixed vs Dynamic position analysis
-   - Full trade list
-   - Copyable config text boxes
+1. **HTML tear sheet** (`{strategy}.html`) — rendered by quantstats-rs
+   - QuantStats-style metric table + embedded SVG charts (cumulative/log returns,
+     rolling Sharpe/Sortino/vol, drawdown periods + underwater, monthly heatmap, EOY)
+   - Standalone (no JS); add `--benchmark` for a strategy-vs-benchmark column
 
-2. **JSON Metrics** (`{strategy}_comparison_metrics.json`)
-   - All scenario results (1x, 10x, 15x, 20x - fixed & dynamic)
-   - Trade statistics
-   - MAE distribution and percentiles
-   - Leverage recommendations
-   - Stop loss recommendations
+2. **MAE / leverage JSON** (`{strategy}_mae.json`) — from `tearsheet_helpers.py`
+   - MAE distribution and percentiles (p50–p99)
+   - Optimal-leverage recommendations per safety buffer
+   - Per-leverage liquidation risk (5x/10x/15x/20x/25x): survival rate, risk score
+
+> Known gap (not yet ported from the retired engine): multi-scenario *equity-curve*
+> overlays (Buy & Hold vs Fixed-Nx vs Dynamic-Nx in one chart). Per-leverage risk now
+> lives in the MAE JSON; render overlays per-series via `quantstats-rs` if needed.
 
 ## Example Output
 
 ```
-✓ Generated comparison tearsheet for SOL_MTF_EMA_001
-  HTML: ./tearsheets/SOL_MTF_EMA_001_comparison.html
-  JSON: ./tearsheets/SOL_MTF_EMA_001_comparison_metrics.json
-
-Scenarios:
-  SOL Buy & Hold: -42.3% return, 63.1% max DD
-  Fixed 1x: 988.4% return, 0.2% max DD
-  Dynamic 1x: 1.7M% return, 0.6% max DD
-  Fixed 10x: 9.9K% return, 0.4% max DD
-  Dynamic 10x: >999Sep% return, 6.3% max DD
+wrote ./tearsheets/SOL_MTF_EMA_001.html (67089 bytes) from trades.csv
+wrote ./tearsheets/SOL_MTF_EMA_001_mae.json
 ```

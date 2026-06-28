@@ -1,6 +1,17 @@
 ---
 name: neuro-quant-research-proof
-description: Use when working in the neuro-quant monorepo on validate repo-local research, modal, data, release, strategy, and evidence artifacts before claims are made. Route to local references first, then deep-tool-wiki or 02-KB-main for full documentation.
+description: >
+  Cross-cutting VERIFY-before-claiming gate for the neuro-quant monorepo:
+  validate repo-local research, Modal, data, release, strategy, and evidence
+  artifacts before any result is claimed. Routes to local references first
+  (resource-map, verification-checklist, handoff-template), then deep-tool-wiki
+  or 02-KB-main for full documentation. Use when the user says "prove this
+  result", "verify before claiming", "release-local proof", "modal volume
+  roundtrip", or "is this evidence sound", or asks to confirm a research run,
+  Optuna tearsheet, or strategy proof before reporting it. For distributed
+  sweep and parallel optimization infrastructure use
+  neuro-quant-distributed-optimization; for model PBO and deflated-Sharpe
+  statistics use model-evaluation.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -10,13 +21,30 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Validate repo-local research, Modal, data, release, strategy, and evidence artifacts before claims are made.
 
-Use this skill when the task matches one of these signals:
-- release-local-proof
-- Modal Volume roundtrip
-- Optuna tearsheet proof
-- verify this research run
-- strategy proof
-- run evidence
+This is the cross-cutting proof gate: nothing about a research result, run, or
+artifact should be claimed until it has been validated against a repo-local
+source. Use this skill when the task matches one of these signals:
+- "prove this result"
+- "verify before claiming"
+- "release-local proof" / "release-local-proof"
+- "modal volume roundtrip"
+- "is this evidence sound"
+- "verify this research run"
+- "Optuna tearsheet proof"
+- "strategy proof"
+- any request to confirm run evidence before it is reported
+
+## Boundary
+
+This skill owns the *verification* surface only. Hand off when the task is not
+about proving an existing artifact:
+- Distributed sweeps, parallel trial fan-out, or optimization infrastructure
+  (running many studies, scaling Optuna/Ray) → `neuro-quant-distributed-optimization`.
+- Model selection statistics — Probability of Backtest Overfitting (PBO),
+  deflated/probabilistic Sharpe, multiple-testing corrections → `model-evaluation`.
+Stay here when the question is "is this result real, reproducible, and backed by
+a repo-local artifact?" rather than "how do I run the sweep?" or "what is the
+overfit-adjusted statistic?".
 
 ## Required Workflow
 

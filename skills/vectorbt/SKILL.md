@@ -1,24 +1,28 @@
 ---
 name: vectorbt
 description: >
-  Comprehensive toolkit for building, analyzing, and optimizing trading
-  strategies with vectorbt and vectorbt-pro (VBT Pro). Use when the user
-  wants to write a vectorbt backtest, analyze results with tearsheets /
-  metrics, run parameter sweeps, do walk-forward optimization, load
-  market data through BinanceData / CCXTData / YFData / PolygonData,
-  build custom indicators via IndicatorFactory, construct portfolios
-  via Portfolio.from_signals / from_orders / from_order_func, or any
-  vectorbt-related task beyond porting from Pine. Trigger even without
-  the word "vectorbt" on phrases like: "backtest this strategy",
-  "parameter sweep", "walk-forward", "tearsheet", "IndicatorFactory",
-  "from_signals", "PortfolioOptimizer", "Splitter", "CVSplitter", or
-  when the user mentions numpy/pandas backtest infrastructure where
-  vectorbt is the idiomatic fit. For Pine Script → vectorbt port
-  specifically, delegate to /strategy-translator (which owns the
-  cross-framework translation layer); this skill owns the
-  vectorbt-native authoring workflow.
+  Vectorized backtest AUTHORING + analysis with vectorbt / vectorbt-pro:
+  IndicatorFactory indicators, Portfolio.from_signals / from_orders /
+  from_order_func, broadcast parameter sweeps, Splitter / CVSplitter
+  walk-forward, and Data loaders (Binance/CCXT/YF/Polygon). Use to write
+  or debug a vectorbt backtest. Trigger even without "vectorbt" on
+  "backtest this strategy" (vectorized), "parameter sweep",
+  "IndicatorFactory", "from_signals", "PortfolioOptimizer", "Splitter
+  walk-forward", or numpy/pandas backtest infra. For the event-driven
+  backtest ENGINE / live / Hyperliquid use nautilus-trader; for porting /
+  "Rust or Pine version" use strategy-translator; for walk-forward EPOCH
+  / WFE / overfitting-epoch use adaptive-wfo-epoch; for "is this Sharpe
+  real" / PBO / purged CV use model-evaluation; for tearsheet / MAE /
+  leverage use tearsheet-generator (quantstats-rs); for comparing to an
+  Optuna baseline or verifying a backtest use strategy-verify; for
+  VPIN/OFI/L2 order-flow use microstructure-analyst.
 version: "1.0.0"
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent
+license: "Apache-2.0 + Commons Clause (vectorbt); proprietary (vectorbt-pro)"
+metadata:
+    skill-author: HyperFrequency
+    skill-domain: trading
+    upstream: https://vectorbt.pro/
 ---
 
 # vectorbt / vectorbt-pro
@@ -32,6 +36,26 @@ vectorbt implementation, that's this skill.
 Both vectorbt (vanilla, Apache 2 + Commons Clause) and vectorbt-pro
 (paid, proprietary) are covered. State which variant you assume in the
 first line of output — their APIs differ (see `references/pro-vs-vanilla.md`).
+
+## When to use
+
+- The user hands you a strategy idea, market thesis, or research-paper
+  signal and asks for a runnable **vectorbt backtest** from scratch.
+- They want a **parameter sweep / grid search** over indicator windows,
+  stops, or thresholds via array broadcasting.
+- They need a **custom indicator** built with `IndicatorFactory`
+  (`from_expr`, `with_apply_func`, or `with_custom_func`).
+- They want **Splitter / CVSplitter walk-forward** mechanics wired
+  inside vectorbt (the vbt machinery — not epoch-selection policy).
+- They construct a portfolio via `Portfolio.from_signals` /
+  `from_orders` / `from_order_func` and read `pf.stats()` / `pf.plot()`.
+- A backtest "looks wrong" (too many signals, suspiciously smooth
+  equity) and needs the look-ahead / re-firing sanity checks.
+
+Hand off when the request is an event-driven engine, a cross-framework
+port, walk-forward EPOCH selection, PBO/Sharpe-realism auditing, a
+standalone tearsheet, an Optuna-baseline comparison, or microstructure
+order-flow indicators — see the cross-link table below.
 
 ## Mental model
 
@@ -267,6 +291,21 @@ Runnable helpers under `scripts/`:
 
 All sourced by the shakedown container from `$HOME/hyperfrequency/.env`.
 
+## Cross-links to sibling skills
+
+This skill owns vectorized backtest authoring. Hand the rest off:
+
+| If the user wants… | Use sibling |
+|---|---|
+| Event-driven backtest ENGINE, venue/execution mechanics, live + Hyperliquid | `nautilus-trader` |
+| Port / translate to Rust / Pine v6 / Nautilus / C++ / from a paper | `strategy-translator` |
+| Walk-forward EPOCH selection / WFE / overfitting-epoch control | `adaptive-wfo-epoch` |
+| "Is this Sharpe real?", PBO, purged/embargoed/combinatorial CV, deflated Sharpe | `model-evaluation` |
+| Performance tearsheet, MAE analysis, optimal-leverage (via quantstats-rs) | `tearsheet-generator` |
+| Compare a backtest to an Optuna/Ray baseline, root-cause logic discrepancies | `strategy-verify` |
+| VPIN / OFI / Kyle / micro-price, order-book reconstruction | `microstructure-analyst` |
+| Distributed HPO infra (Optuna/Ray/Dask/MLflow fan-out) | `neuro-quant-distributed-optimization` |
+
 ## Delegation
 
 If the user's request includes porting FROM Pine Script, delegate to
@@ -274,3 +313,17 @@ If the user's request includes porting FROM Pine Script, delegate to
 (Diff vs source, fill-timing equivalence, pitfall catalogue). This
 skill's job begins AFTER the translation lands, or when the user is
 authoring a vectorbt backtest from scratch without a Pine source.
+
+## References
+
+- vectorbt-pro (HyperFrequency fork): `HyperFrequency/vectorbt.pro`
+  (private; install via `GITHUB_ACCESS_TOKEN`).
+- vectorbt-pro docs: https://vectorbt.pro/ — hash-rotating
+  `pvt_<hash>`; resolve the live URL with `scripts/get-pvt-url.sh`.
+- vectorbt (vanilla): https://github.com/polakowo/vectorbt
+- Context7 corpora: see the live-lookup table under "MANDATORY live
+  lookups before emitting code" above.
+- License: vectorbt is Apache-2.0 + Commons Clause; vectorbt-pro is
+  proprietary (paid). This skill's own content follows the repo LICENSE.
+- Last cross-checked: 2026-04-20 (against the `pvt_16ebf9ef` llms-full
+  dump; re-verify drifting APIs via the live MCP / Context7 first).

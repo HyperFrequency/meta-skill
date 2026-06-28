@@ -4,6 +4,19 @@ This file is the reference implementation that every other file in this skill as
 you have read. The strategy is identical across all eight versions; only the
 representation changes.
 
+## Contents
+
+- [Strategy specification](#strategy-specification)
+- [1. Basic Python (pandas + numpy)](#1-basic-python-pandas--numpy)
+- [2. vectorbt](#2-vectorbt)
+- [3. NautilusTrader (Python)](#3-nautilustrader-python)
+- [4. NautilusTrader (Rust)](#4-nautilustrader-rust)
+- [5. Pine Script v6](#5-pine-script-v6)
+- [6. C++](#6-c)
+- [7. Blog-post extrapolation (natural language)](#7-blog-post-extrapolation-natural-language)
+- [8. Academic-paper extrapolation](#8-academic-paper-extrapolation)
+- [How to use this file when translating](#how-to-use-this-file-when-translating)
+
 ## Strategy specification
 
 - **Instrument:** BTC/USDT perpetual (single symbol).

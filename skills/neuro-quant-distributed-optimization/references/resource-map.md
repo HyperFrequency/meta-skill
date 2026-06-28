@@ -18,6 +18,30 @@ Open this file before loading full documentation. It keeps the skill useful with
 3. Use the deep-tool-wiki path for comprehensive documentation, architecture, pitfalls, and ontology.
 4. Use generated stubs only as coverage todos; do not treat a stub as source authority.
 
+## Storage Backend Selection
+
+Pick storage before picking worker count.
+
+- `InMemoryStorage`: single-process smoke only.
+- Local SQLite: small single-host proof where write contention is not the question; not for multi-worker concurrency.
+- PostgreSQL/RDB: concurrent process or node fan-out, crash recovery, resumable studies.
+- Connection pooling: required when worker count exceeds safe direct database connections.
+- MLflow artifact store: keep separate from Optuna storage; do not overload the Optuna DB with large artifacts.
+- GNU parallel joblogs: enable resume of failed rows without rerunning every job.
+
+## Eval / Docker Personas
+
+| Persona | Surface | Use before |
+| --- | --- | --- |
+| `single-trial-smoke` | one objective call, memory/temp-file only | every larger run |
+| `postgres-optuna-local` | local PostgreSQL + two Optuna workers, same study | concurrency/resume proof |
+| `ray-localcluster` | local Ray head, bounded CPU, tiny task/Tune smoke | any cloud or multi-node run |
+| `dask-localcluster` | local Dask scheduler/client, small partitioned workload | graph/DataFrame risk |
+| `mlflow-file-smoke` | local file store, one metric + one artifact | long HPO |
+| `gnu-parallel-dryrun` | `--dry-run` matrix, then two-job `--joblog` run | full shell sweep |
+
 ## Context-Rot Boundary
 
 If the workflow grows beyond this family, fill `handoff-template.md` and switch to the next skill instead of carrying all resources forward.
+
+Sibling routes: walk-forward EPOCH selection -> `adaptive-wfo-epoch`; is-Sharpe-real / PBO / purged-CV -> `model-evaluation`; backtest-vs-Optuna-baseline comparison -> `strategy-verify`.

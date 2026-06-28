@@ -1,7 +1,20 @@
 ---
 name: model-evaluation
-description: "Evaluate ML trading models with techniques specific to financial time series, not generic ML. Use when validating a model whose outputs will be traded — for cross-validation under temporal dependence (walk-forward, purged + embargoed K-fold, Combinatorial Purged CV), for computing trading metrics (Sharpe, Calmar, Sortino, max drawdown) alongside ML metrics, and for the deflated/PBO discipline that separates real edges from data-mining artifacts. Triggers on phrases like \"evaluate this model\", \"validate this strategy\", \"walk-forward analysis\", \"purged CV\", \"combinatorial CV\", \"PBO\", \"probability of backtest overfitting\", \"calmar ratio\", \"is this Sharpe real\", \"what metrics should I report\". Strong opinion: do NOT use raw k-fold or accuracy-without-baseline. For pre-experiment power calc use ml-hypothesis-design; for feature pipeline issues use feature-engineering."
-allowed-tools: Read Write Edit Bash
+description: >
+  Financial-ML model VALIDATION discipline — separates a real edge from a data-mining artifact. Covers
+  CV under temporal dependence (walk-forward, purged/embargoed K-fold, Combinatorial Purged CV / CPCV),
+  trading-vs-ML metrics (Sharpe/Sortino/Calmar/MDD, net-of-cost), and the overfitting posture:
+  Probability of Backtest Overfitting (PBO) and deflated Sharpe. Triggers on "evaluate this model",
+  "validate this strategy", "purged CV", "combinatorial CV", "PBO", "deflated Sharpe", "is this Sharpe
+  real", "did I overfit this sweep"; trigger even without "evaluate" on "my k-fold looked great but it's
+  losing live". For walk-forward EPOCH selection / overfitting-epoch control use adaptive-wfo-epoch; for
+  pre-experiment power/design use ml-hypothesis-design; for the tearsheet / MAE / leverage report use
+  tearsheet-generator (quantstats-rs); for comparing to an Optuna/Ray baseline use strategy-verify; to
+  run the backtest use vectorbt (vectorized) or nautilus-trader (engine); for the feature pipeline use
+  feature-engineering.
+version: "1.0.0"
+allowed-tools: Read, Write, Edit, Bash
+license: HyperFrequency original (citations to external academic + library work)
 ---
 
 # Model Evaluation for Trading Models
@@ -24,6 +37,18 @@ Use this skill when:
 - Computing PBO or deflated Sharpe over a parameter sweep
 
 Do **not** use this for: the experiment design stage before fitting (use `ml-hypothesis-design`); or feature pipeline construction (use `feature-engineering`).
+
+## Required Tooling
+
+This skill is methodology-first and runs as **pure Python — no MCP servers are required**. The reference implementations below depend only on `numpy`, `pandas`, and `scikit-learn`; `mlfinlab` is the optional canonical backbone for purged/combinatorial CV, PBO, and the Deflated Sharpe Ratio.
+
+| Dependency | Type | Purpose | Access |
+| --- | --- | --- | --- |
+| numpy, pandas | Python lib | returns series, block splits, metric math | direct import |
+| scikit-learn | Python lib | `_BaseKFold`, `TimeSeriesSplit` scaffolding | direct import |
+| mlfinlab | Python lib (optional) | canonical `PurgedKFold` / `CombPurgedKFoldCV` / PBO / DSR | direct import |
+
+No federated MCP tool is invoked here. If you later put a metrics engine behind an MCP server, route it through `/forge` or `mcp2cli` rather than a direct SSE connection.
 
 ## Strong Opinions: What NOT to Use
 
@@ -314,6 +339,21 @@ def probability_of_backtest_overfitting(
 6. **Reporting Calmar without context.** Calmar is dominated by tail events. A strategy with 1 year of clean returns and 1 month of disaster has misleadingly bad Calmar. Pair with rolling Calmar across multiple windows.
 7. **Stopping at "passed CV".** Passing purged-CV is necessary but not sufficient. You also need: deflated Sharpe (`ml-hypothesis-design`), regime robustness, cost sensitivity, and a sane equity curve.
 8. **Not computing PBO when running a sweep.** If you tried N variants and report the best, you owe PBO. No exceptions.
+
+## Sibling Skills (routing)
+
+This skill owns financial-ML model **validation** — purged/combinatorial CV, PBO, deflated Sharpe, and the trading-vs-ML metric discipline. Hand off neighboring concerns to the right sibling:
+
+| If the task is… | Use |
+| --- | --- |
+| Walk-forward EPOCH selection / overfitting-epoch control | `adaptive-wfo-epoch` |
+| Pre-experiment power, trial-count, deflated-Sharpe *design* | `ml-hypothesis-design` |
+| Leakage-safe feature pipeline / `t1` label end-times | `feature-engineering` |
+| Tearsheet / MAE / optimal-leverage report (quantstats-rs) | `tearsheet-generator` |
+| Compare results to an Optuna/Ray baseline; root-cause a discrepancy | `strategy-verify` |
+| Actually run the backtest — vectorized authoring + sweeps | `vectorbt` |
+| Actually run the backtest — event-driven engine / live | `nautilus-trader` |
+| Port the strategy to another framework / Pine / Rust | `strategy-translator` |
 
 ## Tooling References
 

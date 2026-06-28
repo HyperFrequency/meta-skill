@@ -12,6 +12,17 @@ translation. Consolidates the pitfall catalogues from two validated
 translation grading sessions (Pine→Python avg 13.9/15, Pine→C++ avg 14/15)
 plus the tooling workflow that produced them.
 
+## Contents
+
+- [Canonical Pine resources](#canonical-pine-resources)
+- [Tooling](#tooling)
+- [Behavioral contract: what to capture from the source](#behavioral-contract-what-to-capture-from-the-source)
+- [Pitfall catalogue](#pitfall-catalogue) — Wilder smoothing, biased stdev, look-ahead, pre-lagged crossovers, crossover state, fill-timing, RSI div-by-zero, MACD signal line, Wilder seed
+- [Target-specific notes](#target-specific-notes) — Python/pandas/vectorbt, C++, NautilusTrader
+- [Emitting Pine as a target](#emitting-pine-as-a-target)
+- [Translation workflow checklist](#translation-workflow-checklist)
+- [Sources](#sources)
+
 ## Canonical Pine resources
 
 Before emitting or interpreting Pine, consult these curated sources.

@@ -1,7 +1,12 @@
 ---
 name: adaptive-wfo-epoch
-description: Adaptive epoch selection for Walk-Forward Optimization. TRIGGERS - WFO epoch, epoch selection, WFE optimization, overfitting epochs.
+description: >
+  Adaptive epoch selection for Walk-Forward Optimization (WFO): picks the per-fold training-epoch count by maximizing Walk-Forward Efficiency (WFE = OOS_Sharpe / IS_Sharpe), builds the WFE-vs-cost efficient frontier, and Bayesian-smooths the choice across folds with look-ahead-safe nested splits. Use when the question is HOW MANY EPOCHS / WHEN TO STOP TRAINING in walk-forward. Trigger even without "epoch" on phrases like "walk-forward efficiency", "WFE", "how many epochs to train", "carry the epoch across folds", "efficient frontier of epochs", "overfitting epochs". For is-this-Sharpe-real / PBO / purged/combinatorial CV / deflated Sharpe use "model-evaluation"; for comparing a backtest to an Optuna/Ray baseline use "strategy-verify"; for distributed Optuna/Ray HPO fan-out use "neuro-quant-distributed-optimization"; for tearsheets / MAE / leverage use "tearsheet-generator" (quantstats-rs); for porting frameworks use "strategy-translator"; to run the backtest use "vectorbt" or "nautilus-trader".
 allowed-tools: Read, Grep, Glob, Bash
+license: HyperFrequency original (citations to external academic + library work)
+metadata:
+    skill-author: HyperFrequency
+    skill-domain: quant-ml-validation
 ---
 
 # Adaptive Walk-Forward Epoch Selection (AWFES)
@@ -17,6 +22,17 @@ Use this skill when:
 - Implementing per-fold adaptive epoch selection
 - Computing efficient frontiers for epoch-performance trade-offs
 - Carrying epoch priors across WFO folds
+
+## Required Tooling
+
+This skill is self-contained reference material — it ships formulas and Python snippets and calls **no MCP servers**. It relies only on local tools:
+
+| Tool                 | Used for                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `Read` / `Grep` / `Glob` | Loading the formulas and the `references/*.md` deep-dives         |
+| `Bash`               | Running the epoch-sweep / WFE snippets against your own training loop |
+
+No `/forge`, `mcp2cli`, or SSE gateway calls are needed. The Sharpe / PSR / DSR inputs the formulas consume come from your existing backtest metrics — see the sibling cross-links below for who produces them.
 
 ## Quick Start
 
@@ -1481,6 +1497,22 @@ Before running AWFES with OOS application:
 See [references/look-ahead-bias.md](./references/look-ahead-bias.md) for detailed examples.
 
 ---
+
+## Cross-Links to Sibling Skills
+
+This skill owns **WFO epoch selection / overfitting-epoch control** only. Hand off everything else:
+
+| If you need...                                                                                              | Use sibling                              |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Is this Sharpe real? PBO / purged + embargoed / combinatorial-purged CV / deflated Sharpe / which CV scheme | `model-evaluation`                       |
+| Compare a backtest's results to an Optuna/Ray optimization baseline; root-cause logic discrepancies         | `strategy-verify`                        |
+| Distributed Optuna / Ray / Dask HPO fan-out + MLflow / Postgres storage                                     | `neuro-quant-distributed-optimization`   |
+| Performance tearsheet / MAE analysis / optimal-leverage recommendation                                      | `tearsheet-generator` (via quantstats-rs) |
+| Port / translate the strategy to vectorbt / NautilusTrader / Pine v6 / Rust / C++ / from a paper            | `strategy-translator`                    |
+| Author or run the backtest itself (vectorized sweep vs event-driven engine)                                 | `vectorbt` / `nautilus-trader`           |
+| Feature pipeline construction                                                                               | `feature-engineering`                    |
+
+> The `rangebar-eval-metrics` references below are pre-existing cross-links from the skill's origin repo; the metrics they describe (`sharpe_tw`, `psr`, `dsr`) are the AWFES inputs.
 
 ## References
 

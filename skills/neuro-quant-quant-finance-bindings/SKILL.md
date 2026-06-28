@@ -1,6 +1,16 @@
 ---
 name: neuro-quant-quant-finance-bindings
-description: Use when working in the neuro-quant monorepo on use quantlib bindings and reporting/risk resources for pricing, curves, and risk workflows. Route to local references first, then deep-tool-wiki or 02-KB-main for full documentation.
+description: >
+  Routes quantitative finance pricing, curve-building, and risk/reporting work
+  through QuantLib-SWIG bindings (plus quantstats/pyfolio for risk reports) in
+  the neuro-quant monorepo. Use when the request says "price this instrument",
+  "value this bond/swap/option", "build a discount curve", "bootstrap a yield
+  curve", "compute greeks", "calculate VaR", "QuantLib", or "produce a risk
+  report". It opens local references first (resource-map, verification-checklist,
+  handoff-template), then escalates to deep-tool-wiki or 02-KB-main for full
+  API documentation. For performance tearsheets use
+  neuro-quant-tearsheet-generator; for running backtests use the vectorbt or
+  nautilus-trader skills.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -8,14 +18,19 @@ allowed-tools: Read, Grep, Glob, Bash
 
 ## Scope
 
-Use QuantLib bindings and reporting/risk resources for pricing, curves, and risk workflows.
+Pricing, curve construction, greeks, and VaR/risk reporting via QuantLib-SWIG
+bindings, with quantstats/pyfolio for risk and reporting output.
 
 Use this skill when the task matches one of these signals:
-- QuantLib
-- curve construction
-- pricing model
-- risk calculation
-- finance bindings
+- "price this instrument", "value this bond / swap / option"
+- "build a discount curve", "bootstrap a yield curve"
+- "compute greeks", "calculate VaR", "risk report"
+- "QuantLib", "QuantLib-SWIG"
+- curve construction, pricing model, risk calculation, finance bindings
+
+Boundary: for performance tearsheets use `neuro-quant-tearsheet-generator`; for
+backtests use the `vectorbt` or `nautilus-trader` skills. Do not run backtests
+or build tearsheets here.
 
 ## Required Workflow
 

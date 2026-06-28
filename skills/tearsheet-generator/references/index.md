@@ -4,7 +4,7 @@
 
 | File | Description |
 |------|-------------|
-| `skill.md` | Main skill documentation with commands and examples |
+| `SKILL.md` | Main skill documentation with commands and examples |
 | `tearsheet_helpers.py` | Python helper module for MAE analysis and leverage recommendations |
 
 ## Reference Documents
@@ -19,14 +19,14 @@
 
 | Script | Location | Purpose |
 |--------|----------|---------|
-| `strategy_tearsheet.py` | `/scripts/` | Main tearsheet generation CLI |
-| `generate_tearsheets.py` | `/scripts/` | Batch tearsheet generation with QuantStats |
+| `generate_tearsheet.py` | `scripts/` | Tear sheet orchestrator: quantstats-rs performance report + MAE/leverage layer |
 
 ## Quick Reference
 
 ### Generate Tearsheet
 ```bash
-python scripts/strategy_tearsheet.py --strategy SOL_MTF --trades trades.csv --output ./tearsheets
+python scripts/generate_tearsheet.py --trades trades.csv --capital 10000 --mae \
+    --strategy-title SOL_MTF -o ./tearsheets/SOL_MTF.html
 ```
 
 ### MAE Analysis
@@ -60,11 +60,9 @@ print(f"Survival rate: {risk.survival_rate}%")
 When generating a tearsheet, these files are created:
 
 ```
-tearsheets/STRATEGY_NAME/
-├── STRATEGY_NAME_comparison.html          # Main HTML tearsheet
-├── STRATEGY_NAME_comparison_metrics.json  # JSON metrics export
-├── tradelist.csv                          # Full trade list
-└── strategy_config.py                     # Copyable Python config
+tearsheets/
+├── STRATEGY_NAME.html        # Performance tear sheet (quantstats-rs)
+└── STRATEGY_NAME_mae.json    # MAE distribution + leverage/liquidation analysis
 ```
 
 ## Integration Points
@@ -73,7 +71,7 @@ tearsheets/STRATEGY_NAME/
 |------|-------------|
 | Nautilus Trader | Load trades with `source_type="nautilus"` for verification badge |
 | Ray Tune | Generate tearsheets for optimized configurations |
-| QuantStats | Use alongside for additional statistical analysis |
+| quantstats-rs | Rust QuantStats engine — renders the performance tear sheet HTML |
 | Hyperliquid | Apply recommended leverage via SDK patch |
 
 ## Common Issues
