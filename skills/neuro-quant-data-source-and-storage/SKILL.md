@@ -1,6 +1,7 @@
 ---
 name: neuro-quant-data-source-and-storage
-description: Use when working in the neuro-quant monorepo on select market data sources, preserve source-first layout, and route raw versus derived storage decisions. Route to local references first, then deep-tool-wiki or 02-KB-main for full documentation.
+version: 0.1.0
+description: Use when working in the neuro-quant monorepo on select market data sources, preserve source-first layout, and route raw versus derived storage decisions. Route to local references first, then deep-tool-wiki or 02-KB-main for full documentation. Not for building strategies, backtesting, or live execution—route to backtest and execution skills for those.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

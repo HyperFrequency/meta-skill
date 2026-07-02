@@ -82,7 +82,7 @@ image = modal.Image.debian_slim().uv_pip_install(
 # Split into multiple layers (better caching)
 base = modal.Image.debian_slim().pip_install("torch")  # Cached
 ml = base.pip_install("transformers", "datasets")      # Cached
-app = ml.copy_local_dir("./src", "/app")               # Rebuilds on code change
+app = ml.add_local_dir("./src", "/app")                # Rebuilds on code change (formerly copy_local_dir)
 
 # Download models during build, not runtime
 image = modal.Image.debian_slim().pip_install("transformers").run_commands(
@@ -169,8 +169,8 @@ def check_gpu():
 ```python
 # Keep containers warm
 @app.function(
-    container_idle_timeout=600,  # Keep warm 10 min
-    keep_warm=1                  # Always keep 1 container ready
+    scaledown_window=600,  # Keep warm 10 min (formerly container_idle_timeout)
+    min_containers=1,      # Always keep 1 container ready (formerly keep_warm)
 )
 def low_latency():
     pass
@@ -284,7 +284,7 @@ def my_function():
 ```python
 # Increase timeout
 @app.function(timeout=300)  # 5 min
-@modal.web_endpoint()
+@modal.fastapi_endpoint()
 def slow_endpoint():
     pass
 

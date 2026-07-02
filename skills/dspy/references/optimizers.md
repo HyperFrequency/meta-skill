@@ -182,8 +182,8 @@ optimized_qa = optimizer.compile(qa, trainset=trainset)
 # You then fine-tune using your LM provider's API
 
 # After fine-tuning, load your model:
-finetuned_lm = dspy.OpenAI(model="ft:gpt-3.5-turbo:your-model-id")
-dspy.settings.configure(lm=finetuned_lm)
+finetuned_lm = dspy.LM("openai/ft:gpt-4o-mini:your-model-id")
+dspy.configure(lm=finetuned_lm)
 ```
 
 **Best practices:**

@@ -2,6 +2,13 @@
 
 Complete guide to Retrieval-Augmented Generation with LangChain.
 
+> **v1 note:** Document loaders, splitters, embeddings, vector stores, and
+> retrievers are current. Sections marked **(legacy 0.x)** use `RetrievalQA`,
+> `ConversationalRetrievalChain`, `ConversationBufferMemory`, or
+> `create_tool_calling_agent` — deprecated in v1 and now in the
+> `langchain-classic` package. In v1, compose retrieval with LCEL
+> (`retriever | prompt | llm | parser`) or `create_agent`.
+
 ## What is RAG?
 
 **RAG (Retrieval-Augmented Generation)** combines:
@@ -170,7 +177,11 @@ retriever = vectorstore.as_retriever(
 docs = retriever.get_relevant_documents("What is Python?")
 ```
 
-### 6. QA chain
+### 6. QA chain (legacy 0.x)
+
+`RetrievalQA` is deprecated in v1; prefer an LCEL chain
+(`{"context": retriever, "question": RunnablePassthrough()} | prompt | llm`)
+or `create_retrieval_chain`. Shown for migration:
 
 ```python
 from langchain.chains import RetrievalQA
@@ -193,7 +204,10 @@ print(f"Sources: {len(result['source_documents'])}")
 
 ## Advanced RAG patterns
 
-### Conversational RAG
+### Conversational RAG (legacy 0.x)
+
+In v1, prefer a `create_agent` with a retriever tool plus a LangGraph
+checkpointer for history. Legacy `ConversationalRetrievalChain` pattern:
 
 ```python
 from langchain.chains import ConversationalRetrievalChain
@@ -248,7 +262,11 @@ qa_chain = RetrievalQA.from_chain_type(
 )
 ```
 
-### Chain types
+### Chain types (legacy 0.x)
+
+The `chain_type` argument (`stuff` / `map_reduce` / `refine` / `map_rerank`)
+belongs to the deprecated `RetrievalQA`; the concepts still apply when you build
+the equivalent in LCEL. Shown for reference:
 
 ```python
 # 1. Stuff (default) - Put all docs in context
@@ -340,7 +358,10 @@ docs = ensemble_retriever.get_relevant_documents("Python async")
 
 ## RAG with agents
 
-### Agent-based RAG
+### Agent-based RAG (legacy 0.x)
+
+In v1, use `create_agent(model, tools=[retriever_tool])`. `create_retriever_tool`
+is still current; `create_tool_calling_agent` + `AgentExecutor` are legacy:
 
 ```python
 from langchain.agents import create_tool_calling_agent

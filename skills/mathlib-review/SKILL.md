@@ -1,6 +1,7 @@
 ---
 name: mathlib-review
-description: Review guidelines for Mathlib PRs. Use when reviewing pull requests, checking code quality, or assessing whether a PR is ready to merge.
+version: 0.1.0
+description: Review guidelines for Mathlib PRs. Use when reviewing pull requests, checking code quality, or assessing whether a PR is ready to merge. Use for Mathlib-specific review only; not for general Lean syntax help or non-Mathlib projects.
 ---
 
 # Mathlib PR Review

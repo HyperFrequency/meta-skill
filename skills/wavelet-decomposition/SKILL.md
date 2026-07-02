@@ -1,5 +1,6 @@
 ---
 name: wavelet-decomposition
+version: 0.1.0
 description: Discrete (DWT) and continuous (CWT) wavelet decomposition via PyWavelets. Use when denoising OHLCV/return series before feeding a model, extracting multi-scale features (regime-band approximation + high-frequency details), or visualizing a time-frequency map of a price chirp. Pairs well with statsmodels/sklearn downstream. For Kalman-style online state tracking, see the kalman-filter skill instead.
 allowed-tools: Read, Write, Edit, Bash
 license: MIT

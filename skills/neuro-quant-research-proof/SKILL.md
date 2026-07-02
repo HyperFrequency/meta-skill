@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-research-proof
+version: 0.1.0
 description: >
   Cross-cutting VERIFY-before-claiming gate for the neuro-quant monorepo:
   validate repo-local research, Modal, data, release, strategy, and evidence

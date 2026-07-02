@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-resource-router
+version: 0.1.0
 description: >
   Top-level entry dispatcher for the neuro-quant monorepo. Routes a task to the
   smallest relevant skill, local resource, KB leaf, or deep-tool-wiki page, and

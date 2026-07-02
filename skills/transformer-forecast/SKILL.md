@@ -1,6 +1,7 @@
 ---
 name: transformer-forecast
-description: Transformer-based time series forecasting. Covers two complementary stacks - HuggingFace `transformers.TimeSeriesTransformerForPrediction` (probabilistic encoder-decoder) and `pytorch-forecasting.TemporalFusionTransformer` (quantile TFT with variable selection + interpretable attention on top of PyTorch Lightning). Trigger on phrases like "fit a transformer to this series", "TFT forecast", "Temporal Fusion Transformer", "HF time series transformer", "probabilistic forecast with attention", "multi-horizon quantile forecast", "attention-based price forecast". For RNN baselines see `lstm-forecast`; for classical baselines see `arima-forecast`.
+version: 0.1.0
+description: Transformer-based time series forecasting. Covers two complementary stacks - HuggingFace `transformers.TimeSeriesTransformerForPrediction` (probabilistic encoder-decoder) and `pytorch-forecasting.TemporalFusionTransformer` (quantile TFT with variable selection + interpretable attention on top of PyTorch Lightning). Trigger on phrases like "fit a transformer to this series", "TFT forecast", "Temporal Fusion Transformer", "HF time series transformer", "probabilistic forecast with attention", "multi-horizon quantile forecast", "attention-based price forecast". For RNN baselines see `lstm-forecast`; for classical baselines see `arima-forecast`. Not for small datasets (<1000 timesteps) or single-series forecasting — use `lstm-forecast` or `arima-forecast` first.
 license: Apache-2.0 (transformers), MIT (pytorch-forecasting)
 metadata:
     skill-author: HyperFrequency

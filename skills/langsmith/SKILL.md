@@ -1,6 +1,6 @@
 ---
-name: langsmith-observability
-description: LLM observability platform for tracing, evaluation, and monitoring. Use when debugging LLM applications, evaluating model outputs against datasets, monitoring production systems, or building systematic testing pipelines for AI applications.
+name: langsmith
+description: LLM observability platform for tracing, evaluation, and monitoring. Use when debugging LLM applications, evaluating model outputs against datasets, monitoring production systems, or building systematic testing pipelines for AI applications. Not for general ML model tracking or data drift detection—use MLflow, Weights & Biases, or Arize instead.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

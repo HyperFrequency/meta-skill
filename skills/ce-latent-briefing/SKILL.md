@@ -1,6 +1,7 @@
 ---
-name: latent-briefing
-description: This skill should be used when the user asks to "share memory between agents", "KV cache compaction for multi-agent", "orchestrator worker context", "latent briefing", "reduce worker tokens", "cross-agent memory without summarization", or discusses Attention Matching compaction, recursive language models with workers, or token explosion in hierarchical agents.
+name: ce-latent-briefing
+version: 0.1.0
+description: This skill should be used when the user asks to "share memory between agents", "KV cache compaction for multi-agent", "orchestrator worker context", "latent briefing", "reduce worker tokens", "cross-agent memory without summarization", or discusses Attention Matching compaction, recursive language models with workers, or token explosion in hierarchical agents. Do not use for API-only stacks, persistent memory/entity tracking, general multi-agent topology without representation-level state sharing, or simple prefix caching—defer to memory-systems, context-compression, multi-agent-patterns, or context-optimization instead.
 ---
 
 # Latent Briefing and KV Cache Memory Sharing

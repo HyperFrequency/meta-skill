@@ -1,6 +1,7 @@
 ---
 name: cmux-browser
-description: End-user browser automation with cmux. Use when you need to open sites, interact with pages, wait for state changes, and extract data from cmux browser surfaces.
+version: 0.1.0
+description: End-user browser automation with cmux. Use when you need to open sites, interact with pages, wait for state changes, and extract data from cmux browser surfaces. Do not use for general Chrome browser automation outside cmux — use the claude-in-chrome skill instead.
 ---
 
 # Browser Automation with cmux

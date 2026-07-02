@@ -1,6 +1,6 @@
 ---
 name: tensorrt-llm
-description: Optimizes LLM inference with NVIDIA TensorRT for maximum throughput and lowest latency. Use for production deployment on NVIDIA GPUs (A100/H100), when you need 10-100x faster inference than PyTorch, or for serving models with quantization (FP8/INT4), in-flight batching, and multi-GPU scaling.
+description: Optimizes LLM inference with NVIDIA TensorRT for maximum throughput and lowest latency. Use for production deployment on NVIDIA GPUs (A100/H100/GB200), when you need 10-100x faster inference than PyTorch, or for serving models with quantization (FP8/INT4/FP4), in-flight batching, and multi-GPU scaling. Do NOT use for CPU, Apple Silicon, or non-NVIDIA (AMD) hardware (use llama.cpp); not when you want a simple Python-first setup without TensorRT engine compilation (use vLLM); not for tiny edge/GGUF deployments.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -40,9 +40,9 @@ NVIDIA's open-source library for optimizing LLM inference with state-of-the-art 
 docker pull nvidia/tensorrt_llm:latest
 
 # pip install
-pip install tensorrt_llm==1.2.0rc3
+pip install tensorrt_llm==1.2.1   # latest stable (Apr 2026)
 
-# Requires CUDA 13.0.0, TensorRT 10.13.2, Python 3.10-3.12
+# Requires CUDA 13.1.0+, Python 3.10-3.12
 ```
 
 ### Basic inference
@@ -114,11 +114,13 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 
 ```python
 from tensorrt_llm import LLM
+from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
 
-# Load FP8 quantized model (2× faster, 50% memory)
+# Load FP8 quantized model (2× faster, ~50% memory)
+# Quantization is set via quant_config, NOT a dtype= kwarg.
 llm = LLM(
     model="meta-llama/Meta-Llama-3-70B",
-    dtype="fp8",
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8),
     max_num_tokens=8192
 )
 
@@ -129,11 +131,14 @@ outputs = llm.generate(["Summarize this article..."])
 ### Multi-GPU deployment
 
 ```python
-# Tensor parallelism across 8 GPUs
+from tensorrt_llm import LLM
+from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
+
+# Tensor parallelism across 8 GPUs with FP8 weights
 llm = LLM(
     model="meta-llama/Meta-Llama-3-405B",
     tensor_parallel_size=8,
-    dtype="fp8"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
 )
 ```
 

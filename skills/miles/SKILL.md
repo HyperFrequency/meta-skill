@@ -1,6 +1,6 @@
 ---
-name: miles-rl-training
-description: Provides guidance for enterprise-grade RL training using miles, a production-ready fork of slime. Use when training large MoE models with FP8/INT4, needing train-inference alignment, or requiring speculative RL for maximum throughput.
+name: miles
+description: Provides guidance for enterprise-grade RL training using miles, a production-ready fork of slime. Use when training large MoE models with FP8/INT4, needing train-inference alignment, or requiring speculative RL for maximum throughput. Not for research-grade RL or flexible backend requirements — use slime for original research or verl for backend flexibility.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

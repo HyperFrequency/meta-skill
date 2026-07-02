@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-forecasting-oracle-ml
+version: 0.1.0
 description: >
   Routes forecasting and ML ORACLE-stack work in the neuro-quant monorepo across
   TabPFN, chronos-forecasting, ludwig, h2o-3, hmmlearn, DeepLOB, and TLOB. Use when

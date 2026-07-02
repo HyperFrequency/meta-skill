@@ -1,6 +1,6 @@
 ---
-name: verl-rl-training
-description: Provides guidance for training LLMs with reinforcement learning using verl (Volcano Engine RL). Use when implementing RLHF, GRPO, PPO, or other RL algorithms for LLM post-training at scale with flexible infrastructure backends.
+name: verl
+description: Provides guidance for training LLMs with reinforcement learning using verl (Volcano Engine RL). Use when implementing RLHF, GRPO, PPO, RLOO, REINFORCE++, or DAPO for LLM post-training at scale, swapping FSDP/Megatron/vLLM/SGLang backends, or doing multi-turn/agentic and vision-language RL. Do NOT use for simple SFT or DPO (use TRL or Axolotl), for Megatron-native training pipelines (use slime or miles), for PyTorch-native Monarch abstractions (use torchforge), or for non-RL inference and serving.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -292,6 +292,8 @@ algorithm.kl_ctrl.target_kl: 0.1            # For adaptive KL control
 
 ## Common Issues and Solutions
 
+For the full diagnostic catalogue (OOM, NCCL, checkpointing, distributed-launch failures), see [references/troubleshooting.md](references/troubleshooting.md).
+
 ### Issue: OOM During Rollout
 
 **Symptoms**: CUDA out of memory during generation phase
@@ -354,7 +356,7 @@ pip install vllm>=0.8.5,<=0.12.0
 
 ### Multi-Turn Tool Calling
 
-See [references/multi-turn.md](references/multi-turn.md) for agentic workflows with tool use.
+See the Multi-Turn Configuration section in [references/api-reference.md](references/api-reference.md) for agentic workflows with tool use (requires the SGLang rollout backend).
 
 ### Vision-Language Models
 

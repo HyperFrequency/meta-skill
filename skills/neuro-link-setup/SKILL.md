@@ -1,6 +1,7 @@
 ---
 name: neuro-link-setup
-description: Interactive guided first-run bootstrap for the neuro-link-recursive system. Use this whenever the user says /neuro-link-setup, asks to "set up neuro-link", "configure the brain", "bootstrap the vault", "install neuro-link", or when state/heartbeat.json shows status=initialized. Also use when the user says the system isn't working on first install, when MCP servers aren't reachable on fresh clone, or when they need to reconfigure secrets/models/hooks. Walks conversationally through prereqs, vault structure verification, secrets population, Octen/Qwen3 model downloads, MCP server registration, hook installation, skill generation, and first-run verification. Never auto-installs missing binaries — always prints the exact command so the user can review before running.
+version: 0.1.0
+description: Interactive guided first-run bootstrap for the neuro-link-recursive system. Use this whenever the user says /neuro-link-setup, asks to "set up neuro-link", "configure the brain", "bootstrap the vault", "install neuro-link", or when state/heartbeat.json shows status=initialized. Also use when the user says the system isn't working on first install, when MCP servers aren't reachable on fresh clone, or when they need to reconfigure secrets/models/hooks. Walks conversationally through prereqs, vault structure verification, secrets population, Octen/Qwen3 model downloads, MCP server registration, hook installation, skill generation, and first-run verification. Never auto-installs missing binaries — always prints the exact command so the user can review before running. Do not use for ongoing system operation once fully initialized—use /neuro-link status instead.
 ---
 
 # /neuro-link-setup

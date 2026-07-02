@@ -1,6 +1,7 @@
 ---
 name: copula-dependency
-description: Copula-based dependency modeling for joint risk and multivariate simulation. Use when you need to model dependence between assets *separately* from their marginal distributions — i.e., fit each return series' marginal distribution, then glue them together with a copula (Gaussian, Student-t, Frank, Clayton, Gumbel) for joint sampling. Best for portfolio VaR / CVaR where tail dependence matters and the Gaussian assumption fails. Uses the sdv-dev/Copulas library.
+version: 0.1.0
+description: Copula-based dependency modeling for joint risk and multivariate simulation. Use when you need to model dependence between assets *separately* from their marginal distributions — i.e., fit each return series' marginal distribution, then glue them together with a copula (Gaussian, Student-t, Frank, Clayton, Gumbel) for joint sampling. Best for portfolio VaR / CVaR where tail dependence matters and the Gaussian assumption fails. Uses the sdv-dev/Copulas library. NOT for single-asset modeling, simple Gaussian linear correlation sufficiency, or pure tail-dependence asymptotics — use EVT or parametric marginals directly instead.
 allowed-tools: Bash, Read, Edit, Write
 license: BUSL-1.1 (sdv-dev/Copulas)
 metadata:

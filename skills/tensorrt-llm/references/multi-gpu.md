@@ -2,6 +2,11 @@
 
 Comprehensive guide to scaling TensorRT-LLM across multiple GPUs and nodes.
 
+> Note: `dtype=` sets the base compute precision (e.g. `"fp16"`, `"bf16"`). FP8/INT4
+> quantization is configured separately via `quant_config`, e.g.
+> `from tensorrt_llm.llmapi import QuantConfig, QuantAlgo` then
+> `quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)`.
+
 ## Parallelism Strategies
 
 ### Tensor Parallelism (TP)
@@ -47,7 +52,7 @@ llm = LLM(
     model="meta-llama/Meta-Llama-3-405B",
     tensor_parallel_size=4,   # TP=4 within nodes
     pipeline_parallel_size=2, # PP=2 across nodes
-    dtype="fp8"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
 )
 
 # Total: 8 GPUs (4×2)
@@ -72,7 +77,7 @@ llm = LLM(
     model="mistralai/Mixtral-8x22B",
     tensor_parallel_size=4,
     expert_parallel_size=2,  # Distribute 8 experts across 2 groups
-    dtype="fp8"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
 )
 ```
 
@@ -100,7 +105,7 @@ llm = LLM(
 llm = LLM(
     model="meta-llama/Meta-Llama-3-70B",
     tensor_parallel_size=4,
-    dtype="fp8"  # 70GB → 35GB per GPU
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)  # 70GB → 35GB per GPU
 )
 ```
 
@@ -118,7 +123,7 @@ llm = LLM(
     model="meta-llama/Meta-Llama-3-405B",
     tensor_parallel_size=8,    # TP within each node
     pipeline_parallel_size=2,  # PP across 2 nodes
-    dtype="fp8"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
 )
 ```
 

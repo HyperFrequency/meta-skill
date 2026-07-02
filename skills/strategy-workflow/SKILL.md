@@ -263,9 +263,10 @@ Final validation phase:
 
 ### Hardware Watchdog Hooks
 
-Enforced by:
-- `hooks/hardware_capacity_watchdog.py`
-- `scripts/process_auditor.py`
+Enforced by the orchestration control plane via a hardware-capacity watchdog
+(tracks CPU/GPU utilization against the targets above) and a process auditor
+(reaps stalled or zombie workers). Wire these into your own swarm runner; they
+are not bundled with this skill.
 
 ### Capacity Monitoring
 

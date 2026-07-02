@@ -1,6 +1,7 @@
 ---
 name: cmux-workspace
-description: "Work inside the current cmux workspace and terminal. Use for cmux workspace, current workspace, caller surface, panes, surfaces, socket targeting, and non-interfering cmux automation."
+version: 0.1.0
+description: "Work inside the current cmux workspace and terminal. Use for cmux workspace, current workspace, caller surface, panes, surfaces, socket targeting, and non-interfering cmux automation. Not for focus-changing operations or cross-workspace actions without explicit user request."
 ---
 
 # cmux Workspace

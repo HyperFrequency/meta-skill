@@ -37,6 +37,24 @@ Packages form a strict downward-only DAG:
 
 If two domains need a shared type, lift the type to a lower package or define a protocol seam. Do not make sibling packages reach sideways.
 
+## Classify every extracted entity by role
+
+- **Coordinator** — a `@MainActor @Observable` orchestrator that sequences a user flow and owns navigation/selection/lifecycle state, calling Services and child models. Does no I/O itself.
+- **Service** — an `actor` (or `@MainActor` only when an AppKit main-thread API forces it) performing one outside-world capability; exposes `async`/`await` + `AsyncStream`, holds only its own resource handles, holds no UI state.
+- **Repository** — an `actor` mediating one persistence source of truth (file, defaults, web API) behind CRUD-shaped async methods returning value types. Precedents: `JSONConfigStore`, `UserDefaultsSettingsStore`.
+
+## Dependency inversion
+
+Lower packages publish protocols; concrete Services/Repositories conform; higher layers depend on `any Protocol`, never the concrete type. Share a type by lifting it to Core or defining a protocol seam in the consumer — never a stored property reaching across modules.
+
+Injection is constructor (`init`) injection only: no global container, no singleton, no `static let shared`. The executable app target is the single composition root — the one place concretes are named and the object graph is assembled. SwiftUI `Environment` may carry already-constructed `@Observable` models down a view tree (as `SettingsRuntime` does), but is never the source of truth for service wiring.
+
+## State and SwiftUI wiring
+
+Domain state lives in `@MainActor @Observable` models (never `ObservableObject`/`@Published`). A god model decomposes into cohesive child `@Observable` sub-models owned by their domain packages and composed by the home object via held references; cross-domain reads go behind read-only protocols.
+
+In views use `@State` (owned), `@Bindable` / plain `let` (passed-in), or `@Environment(M.self)` + `.environment(...)` (injected) — never `@StateObject` / `@ObservedObject` / `@EnvironmentObject` / `.environmentObject(_:)`.
+
 ## Extract leaf-first
 
 When uncertain, extract the package that has no internal dependencies first. This keeps the migration incremental and avoids needing several downstream packages to exist before one package can compile.
@@ -81,9 +99,4 @@ Instead:
 
 App-target packages link into both `cmux` and `cmux-unit`, so tests can import and inject them. A package linked by the app but not `cmux-unit` can make the app build pass while the test target fails.
 
-After editing the project file, run:
-
-```bash
-scripts/normalize-pbxproj.py
-scripts/check-pbxproj.sh
-```
+After editing the project file, run the cmux repo's pbxproj normalization and validation step (the normalize/check tooling the repo ships under its own `scripts/` directory) to confirm the entries are well-formed and present in every required target.

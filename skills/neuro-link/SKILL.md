@@ -1,6 +1,7 @@
 ---
 name: neuro-link
-description: Main orchestrator for the neuro-link-recursive knowledge/memory control plane. Use this whenever the user says /neuro-link, asks about brain status, wants to trigger a scan, ingest a source, curate a wiki topic, check or dispatch the task queue, edit config, or get a system overview. Also trigger when the user says "what's in the brain right now", "run neuro", "what's pending", or refers to the vault's overall health. This is the primary entry point — it does not do heavy work itself; it dispatches to the right specialized skill (neuro-scan, neuro-surgery, hyper-sleep, crawl-ingest-update, job-scanner, wiki-curate, reasoning-ontology) and composes their outputs. Prefer this over invoking specialized skills directly when the user's intent is ambiguous.
+version: 0.1.0
+description: Main orchestrator for the neuro-link-recursive knowledge/memory control plane. Use this whenever the user says /neuro-link, asks about brain status, wants to trigger a scan, ingest a source, curate a wiki topic, check or dispatch the task queue, edit config, or get a system overview. Also trigger when the user says "what's in the brain right now", "run neuro", "what's pending", or refers to the vault's overall health. This is the primary entry point — it does not do heavy work itself; it dispatches to the right specialized skill (neuro-scan, neuro-surgery, hyper-sleep, crawl-ingest-update, job-scanner, wiki-curate, reasoning-ontology) and composes their outputs. Prefer this over invoking specialized skills directly when the user's intent is ambiguous. Not for direct wiki edits, ontology work, or task execution—use neuro-surgery, wiki-curate, reasoning-ontology, or job-scanner directly.
 ---
 
 # /neuro-link
@@ -65,7 +66,6 @@ This matters because the user typically uses `/neuro-link` as a status probe whi
 ## References
 
 - `references/tool-namespaces.md` — full `nlr_*` vs `tv_*` tool map with rationale
-- `references/subcommand-dispatch.md` — deeper dispatch logic including edge cases
 
 ## Scripts
 

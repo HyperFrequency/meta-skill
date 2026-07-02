@@ -1,6 +1,7 @@
 ---
-name: extract-insights
-description: Extract unique insights and perspectives from personal content (conversations, transcripts, notes). Spawns insight-extractor subagent.
+name: cornelius-extract-insights
+version: 0.1.0
+description: Extract unique insights and perspectives from personal content (conversations, transcripts, notes). Spawns insight-extractor subagent. NOT for external research — use /extract-document-insights for papers, books, articles.
 allowed-tools: [Task]
 user-invocable: true
 arg-description: "<file path or content description>"

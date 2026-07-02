@@ -5,7 +5,9 @@ This directory contains comprehensive reference materials for pyvene.
 ## Contents
 
 - [api.md](api.md) - Complete API reference for IntervenableModel, intervention types, and configurations
+- [workflows.md](workflows.md) - End-to-end recipes: causal tracing, activation patching, IIT/DAS, steering, saving/sharing
 - [tutorials.md](tutorials.md) - Step-by-step tutorials for causal tracing, activation patching, and trainable interventions
+- [troubleshooting.md](troubleshooting.md) - Common issues and fixes
 
 ## Quick Links
 

@@ -1,6 +1,7 @@
 ---
 name: main-codebase-tools
-description: Register the user's main codebases for context-aware retrieval and auto-RAG injection. Use this whenever the user says /main-codebase-tools, /main-codebase-tools add <repo>, asks to register a repo for context injection, or adds a new project they'll be working on regularly. Also trigger when the user says "track this repo", "add this to auto-rag", "index my codebase for Claude", or mentions a new project they expect Claude to know about. Performs full indexing via Context7 (API surface / doc snippets) and Augment Code / Auggie (semantic understanding), registers the repo's primary topics with the /auto-rag keyword router, subscribes fork repos to doc-sync-embed-verify for upstream change tracking, and generates a short CLAUDE.md addendum with architecture and gotchas. Each registered repo gets one spec file in this skill's directory with frontmatter pinning the indexed version.
+version: 0.1.0
+description: "Register the user's OWN actively-worked codebases for context-aware retrieval and auto-RAG injection. Use whenever the user says /main-codebase-tools, /main-codebase-tools add <repo>, asks to register a repo for context injection, or adds a project they'll work on regularly. Also trigger on 'track this repo', 'add this to auto-rag', 'index my codebase for Claude', or mentioning a new project they expect Claude to know. Indexes via Context7 (API/doc snippets) and Augment Code / Auggie (code semantics), registers primary topics with the /auto-rag keyword router, and writes a CLAUDE.md addendum plus a per-repo spec file pinning the indexed version. WHEN NOT TO USE - third-party tools/libraries the user merely consumes go to /adjacent-tools-code-docs (public-doc-only); forks the user maintains with local changes go to /forked-repos-with-changes (upstream-diff + doc-sync) — this skill bails and dispatches there if a repo is a fork. Not for one-off repo questions or read-only code exploration."
 ---
 
 # /main-codebase-tools
@@ -36,7 +37,7 @@ mcp__context7__resolve-library-id(<repo>)
 mcp__context7__query-docs(<resolved-id>, "full index")
 ```
 
-Context7 holds a pre-computed doc/code snippet index. If the repo isn't in Context7 yet, the skill queues a task to request indexing rather than failing — Context7 picks up new repos periodically.
+Context7 holds a pre-computed doc/code snippet index. **Success criterion:** `resolve-library-id` returns a `/org/project` id AND `query-docs` returns non-empty snippets. **If the repo isn't in Context7** (no id resolved, or empty snippets), do NOT fail the registration — set `context7_id: ""` and `index_context7: false` in the spec, continue with Auggie-only indexing, and queue a re-resolve (Context7 ingests new public repos periodically; private repos never resolve). See `references/context7-indexing.md` for the unavailability decision tree.
 
 ### Step 3 — Augment Code / Auggie indexing
 
@@ -48,9 +49,11 @@ auggie index --path <local_path> --project <repo-slug>
 
 Auggie produces a semantic embedding layer over the full source tree — complements Context7's doc-focused index with code-focused semantics. This takes 2–20 minutes depending on repo size; run in background, report completion.
 
+**Success criterion:** `auggie status <slug>` reports `indexed` (not `pending`/`error`). **If `auggie` is not installed or auth is missing** (`command -v auggie` fails, or it errors on first call), do NOT block registration — set `index_auggie: false` in the spec, note the gap in the CLAUDE.md addendum, and proceed with Context7-only coverage. `register_repo.sh` already skips this step gracefully when `auggie` is absent. See `references/auggie-indexing.md` for setup (install, auth, the known first-run index gaps) and how to backfill the embedding once Auggie is available.
+
 ### Step 4 — Register auto-RAG keywords
 
-Edit the auto-RAG keyword router config at `config/auto-rag-routes.yml`:
+Edit the auto-RAG keyword router config at `<neuro-link-root>/config/auto-rag-routes.yml` (repo root, not this skill's directory — `register_repo.sh` resolves it via `$NLR_ROOT`):
 
 ```yaml
 routes:

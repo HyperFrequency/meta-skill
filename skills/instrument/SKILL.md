@@ -1,6 +1,7 @@
 ---
 name: instrument
-description: Add Opik tracing to an existing codebase. Detects language (Python/TypeScript), identifies LLM frameworks, adds appropriate decorators and integrations, marks entrypoints, and wires up environment config. Use for "instrument my code", "add opik tracing", "add observability", or "trace my agent".
+version: 0.1.0
+description: Add Opik tracing to an existing codebase. Detects language (Python/TypeScript), identifies LLM frameworks, adds appropriate decorators and integrations, marks entrypoints, and wires up environment config. Use for "instrument my code", "add opik tracing", "add observability", or "trace my agent". Not for initial Opik setup or configuration-only tasks — use /opik for setup.
 argument-hint: "[file or directory path]"
 compatibility: Works with Claude Code, OpenAI Codex, Cursor, and any Agent Skills-compatible tool. Requires a Python or TypeScript project.
 allowed-tools:
@@ -25,29 +26,17 @@ If `$ARGUMENTS` is provided, scope your work to those files or directories. Othe
 Scan the codebase to determine:
 
 1. **Language**: Python (look for `*.py`, `pyproject.toml`, `requirements.txt`) or TypeScript (look for `*.ts`, `*.tsx`, `package.json`)
-2. **LLM frameworks in use** — search imports for these patterns:
+2. **LLM frameworks in use** — search imports for the most common patterns:
 
 | Import pattern | Framework | Integration |
 |---|---|---|
 | `from openai` / `import OpenAI` | OpenAI | `track_openai` |
 | `import anthropic` | Anthropic | `track_anthropic` |
 | `from langchain` / `@langchain` | LangChain | `OpikTracer` callback |
-| `from langgraph` | LangGraph | `OpikTracer` with `graph=` |
-| `from crewai` | CrewAI | `track_crewai` |
-| `import dspy` | DSPy | `OpikCallback` |
-| `from google` … `genai` | Google Gemini | `track_genai` |
-| `import boto3` … `bedrock` | AWS Bedrock | `track_bedrock` |
-| `from llama_index` | LlamaIndex | `LlamaIndexCallbackHandler` |
 | `import litellm` | LiteLLM | `OpikLogger` callback |
-| `from pydantic_ai` | Pydantic AI | Logfire OTLP bridge |
-| `from opik.integrations.adk` / `from google.adk` | Google ADK | `track_adk_agent_recursive` |
-| `import ollama` | Ollama | `track_openai` with localhost base_url or manual `@opik.track` |
-| `from agents import` / `from openai.agents` | OpenAI Agents SDK | `OpikTracingProcessor` |
-| `from haystack` | Haystack | `OpikConnector` |
-| `opik-openai` / `trackOpenAI` (TS) | OpenAI (TS) | `trackOpenAI` |
-| `opik-vercel` / `OpikExporter` (TS) | Vercel AI SDK | `OpikExporter` |
-| `opik-langchain` / `OpikCallbackHandler` (TS) | LangChain.js | `OpikCallbackHandler` |
-| `opik-gemini` / `trackGemini` (TS) | Gemini (TS) | `trackGemini` |
+| `from crewai` | CrewAI | `track_crewai` |
+
+   These cover the common cases. For the **full detection table** (LangGraph, DSPy, Gemini, Bedrock, LlamaIndex, Pydantic AI, Google ADK, Ollama, OpenAI Agents SDK, Haystack, and all TypeScript integrations), see `references/integrations.md`.
 
 3. **Existing Opik usage** — check if `opik` or `@opik.track` is already imported. If so, audit rather than re-instrument.
 
@@ -70,67 +59,11 @@ The function marked with `entrypoint=True` **must only accept primitive-typed pa
 1. **Look higher in the call chain** for a function that already accepts primitives
 2. If none exists, **create a thin wrapper function** that accepts only primitives, unpacks them, and calls the original function. Move the `entrypoint=True` decorator to this wrapper.
 
-**Example — bad entrypoint (complex parameter):**
-```python
-# ❌ DO NOT mark this as entrypoint — RecommendRequest is a Pydantic model
-@app.post("/recommend")
-async def recommend(request: RecommendRequest):
-    summary, tool_results = await run_agent(user_message=build_user_message(request))
-    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
-```
-
-**Example — good entrypoint (primitives only):**
-```python
-@opik.track(name="recommend-agent", entrypoint=True)
-async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
-    """Opik entrypoint — receives only the user message for Local Runner schema."""
-    return await run_agent(user_message=user_message)
-
-@app.post("/recommend")
-async def recommend(request: RecommendRequest):
-    summary, tool_results = await _run_entrypoint(user_message=build_user_message(request))
-    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
-```
-
-The wrapper extracts the primitive values from the complex object and delegates to the existing logic. The HTTP handler calls the wrapper instead of the inner function directly, so the trace captures the full execution.
+See `references/patterns.md` → "Entrypoint parameter rules" for wrapper examples.
 
 ## Step 4 — Add Framework Integrations
 
-For each detected framework, add the appropriate integration at the module level. See the integration table above and `references/integrations.md` for the exact patterns.
-
-**Python examples:**
-
-```python
-# OpenAI
-from opik.integrations.openai import track_openai
-client = track_openai(OpenAI())  # wrap existing client
-
-# Anthropic
-from opik.integrations.anthropic import track_anthropic
-client = track_anthropic(anthropic.Anthropic())
-
-# LangChain / LangGraph
-from opik.integrations.langchain import OpikTracer
-tracer = OpikTracer()
-# pass config={"callbacks": [tracer]} to invoke()
-
-# LiteLLM inside @opik.track — CRITICAL: pass span context
-from opik.opik_context import get_current_span_data
-# in every litellm.completion() call, add:
-#   metadata={"opik": {"current_span_data": get_current_span_data()}}
-```
-
-**TypeScript examples:**
-
-```typescript
-// OpenAI
-import { trackOpenAI } from "opik-openai";
-const trackedClient = trackOpenAI(openai);
-
-// Vercel AI SDK
-import { OpikExporter } from "opik-vercel";
-// set up NodeSDK with OpikExporter
-```
+For each detected framework, add the appropriate integration at the module level. See `references/integrations.md` for the full detection→integration table and `references/patterns.md` → "Framework integration snippets" for ready-to-paste Python/TypeScript patterns. The canonical per-provider code lives in the sibling opik skill at `../opik/references/integrations.md`.
 
 ## Step 5 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
 
@@ -156,31 +89,12 @@ Add `import opik` at the top of each file you instrument.
 
 ### TypeScript
 
-Use the client-based approach:
-
-```typescript
-import { Opik } from "opik";
-const client = new Opik({ projectName: "<project-name>" });
-
-// In the entrypoint function:
-const trace = client.trace({ name: "<agent-name>", input: { ... } });
-const span = trace.span({ name: "<operation>", type: "tool", input: { ... } });
-// ... logic
-span.end({ output: { ... } });
-trace.end({ output: { ... } });
-await client.flush();
-```
-
-For entrypoints that should be discoverable by `opik connect` — note that `params` must only use primitive types (`string`, `number`, `boolean`) since users enter these values in a UI text field:
-
-```typescript
-import { track } from "opik";
-
-const myAgent = track(
-  { name: "<agent-name>", entrypoint: true, params: [{ name: "query", type: "string" }] },
-  async (query: string) => { /* ... */ }
-);
-```
+Use the client-based approach: create an `Opik` client, open a `trace`, open one `span`
+per operation (set `type` to `tool`/`llm`/etc.), `end()` each span and the trace with
+their outputs, then `await client.flush()`. For entrypoints discoverable by
+`opik connect`, use `track({ entrypoint: true, params: [...] }, fn)` with **primitive-only**
+`params` (`string`, `number`, `boolean`). See `references/patterns.md` →
+"Client tracing scaffolding" for the full code.
 
 ## Step 6 — Migrate Prompts to the Prompt Library
 
@@ -194,66 +108,7 @@ For every prompt found in Step 3, replace the hardcoded value with a `get_prompt
 
 `get_prompt` / `get_chat_prompt` returns `None` if the prompt doesn't exist yet — check for `None` and create on first run so the same code handles both initial setup and subsequent runs.
 
-**Python:**
-
-```python
-opik_client = opik.Opik()
-
-@opik.track(entrypoint=True, project_name="<project-name>")
-def run_agent(question: str) -> str:
-    prompt = opik_client.get_prompt(name="<prompt-name>")
-    if prompt is None:
-        prompt = opik_client.create_prompt(
-            name="<prompt-name>",
-            prompt="<original hardcoded prompt text>",
-            metadata={"model": "<model>", "temperature": <value>},
-        )
-    system_message = prompt.format()  # pass template vars if any: prompt.format(var=value)
-    return llm_call(
-        model=prompt.metadata["model"],
-        temperature=prompt.metadata["temperature"],
-        system_prompt=system_message,
-        question=question,
-    )
-```
-
-For multi-turn message lists:
-
-```python
-    chat_prompt = opik_client.get_chat_prompt(name="<prompt-name>")
-    if chat_prompt is None:
-        chat_prompt = opik_client.create_chat_prompt(
-            name="<prompt-name>",
-            messages=[...],  # original hardcoded messages list
-            metadata={"model": "<model>", "temperature": <value>},
-        )
-    messages = chat_prompt.format()  # pass template vars if any
-    return llm_call(
-        model=chat_prompt.metadata["model"],
-        temperature=chat_prompt.metadata["temperature"],
-        messages=messages,
-    )
-```
-
-**TypeScript:**
-
-```typescript
-const opikClient = new Opik({ projectName: "<project-name>" });
-
-const runAgent = track({ entrypoint: true, projectName: "<project-name>" }, async (question: string) => {
-    let prompt = await opikClient.getPrompt({ name: "<prompt-name>" });
-    if (prompt === null) {
-        prompt = await opikClient.createPrompt({
-            name: "<prompt-name>",
-            prompt: "<original hardcoded prompt text>",
-            metadata: { model: "<model>", temperature: <value> },
-        });
-    }
-    const systemMessage = prompt.format();  // pass template vars if any
-    const { model, temperature } = prompt.metadata as { model: string; temperature: number };
-    return llmCall({ model, temperature, systemMessage, question });
-});
-```
+See `references/patterns.md` → "Prompt migration to the Prompt Library" for the full Python (single string and multi-turn message list) and TypeScript code.
 
 ## Step 7 — Conversational Agents: Add `thread_id`
 
@@ -336,7 +191,11 @@ After instrumentation, do a quick audit:
 ## References
 
 For detailed API signatures and advanced patterns, see:
+- `references/integrations.md` — framework detection→integration table and selection guide
+- `references/patterns.md` — full code for Steps 3–6 (entrypoint wrappers, integration snippets, prompt migration)
+
+For deeper Opik SDK reference, see the sibling `opik` skill:
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
-- `../opik/references/integrations.md` — All framework integrations
+- `../opik/references/integrations.md` — canonical per-provider integration code
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)

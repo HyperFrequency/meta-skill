@@ -1,6 +1,6 @@
 ---
-name: fine-tuning-with-trl
-description: Fine-tune LLMs using reinforcement learning with TRL - SFT for instruction tuning, DPO for preference alignment, PPO/GRPO for reward optimization, and reward model training. Use when need RLHF, align model with preferences, or train from human feedback. Works with HuggingFace Transformers.
+name: trl-fine-tuning
+description: Fine-tune LLMs using reinforcement learning with TRL - SFT for instruction tuning, DPO for preference alignment, PPO/GRPO for reward optimization, and reward model training. Use when you need RLHF, want to align a model with preferences (chosen/rejected pairs), or train from human feedback on HuggingFace Transformers models. Do NOT use for plain supervised fine-tuning with no RL or preference component (use HuggingFace Trainer); prefer Axolotl for declarative YAML-driven training configs, LitGPT for minimal/educational from-scratch fine-tuning, and Unsloth when raw LoRA/QLoRA throughput and VRAM savings on a single GPU matter more than RL method coverage.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -91,7 +91,7 @@ trainer = SFTTrainer(
     model=model,
     args=training_args,
     train_dataset=dataset,
-    tokenizer=tokenizer
+    processing_class=tokenizer  # `tokenizer=` is deprecated in recent TRL
 )
 trainer.train()
 trainer.save_model()
@@ -305,7 +305,7 @@ config = GRPOConfig(
     num_train_epochs=1,
     learning_rate=1e-5,
     num_generations=4,  # Generate 4 completions per prompt
-    max_new_tokens=128
+    max_completion_length=128  # Max tokens generated per completion
 )
 ```
 

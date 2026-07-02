@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-distributed-optimization
+version: 0.1.0
 description: >
   Distributed HPO and sweep infrastructure for the neuro-quant monorepo:
   Optuna, Ray, Dask, MLflow, PostgreSQL-backed Optuna, and GNU parallel.
@@ -10,7 +11,8 @@ description: >
   this backtest", "track this with MLflow", or "launch a GNU parallel sweep".
   For walk-forward EPOCH selection use adaptive-wfo-epoch; for is-the-Sharpe-real,
   PBO, or purged-CV use model-evaluation; for comparing a backtest to an Optuna
-  baseline use strategy-verify.
+  baseline use strategy-verify. NOT for single-trial local optimization or backtest
+  statistical analysis.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

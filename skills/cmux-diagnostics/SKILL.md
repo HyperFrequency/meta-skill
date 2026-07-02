@@ -1,6 +1,7 @@
 ---
 name: cmux-diagnostics
-description: "Run end-user cmux diagnostics. Use when cmux hooks, notifications, session restore, settings, browser automation, socket access, CLI control, or agent resume behavior is not working, or when the user asks for a cmux health check, doctor report, or support-safe debug summary."
+version: 0.1.0
+description: "Run end-user cmux diagnostics. Use when cmux hooks, notifications, session restore, settings, browser automation, socket access, CLI control, or agent resume behavior is not working, or when the user asks for a cmux health check, doctor report, or support-safe debug summary. Do not use to edit or write cmux configuration (use cmux-settings for that), to debug application code unrelated to the cmux integration, or for non-cmux terminals and agents."
 ---
 
 # cmux Diagnostics

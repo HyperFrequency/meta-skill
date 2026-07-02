@@ -1,6 +1,7 @@
 ---
 name: garch-volatility
-description: GARCH-family volatility modeling via the arch library. Use when you need to model time-varying conditional variance of financial returns, capture volatility clustering and asymmetric leverage effects, or forecast variance with GARCH(1,1), GJR-GARCH, EGARCH, TARCH, or APARCH. Best for univariate financial return series where heteroskedasticity dominates. For multivariate volatility consider DCC/BEKK (not in arch); for stochastic volatility use pymc.
+version: 0.1.0
+description: GARCH-family volatility modeling via the arch library. Use when you need to model time-varying conditional variance of financial returns, capture volatility clustering and asymmetric leverage effects, or forecast variance with GARCH(1,1), GJR-GARCH, EGARCH, TARCH, or APARCH. Best for univariate financial return series where heteroskedasticity dominates. For multivariate volatility consider DCC/BEKK (not in arch); for stochastic volatility use pymc. Not for realized-volatility or high-frequency estimators (use pyfin/mfe-toolbox instead).
 allowed-tools: Bash, Read, Edit, Write
 license: NCSA-style (see arch repo)
 metadata:

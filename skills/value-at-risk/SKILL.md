@@ -1,6 +1,7 @@
 ---
 name: value-at-risk
-description: Value-at-Risk (VaR) and Conditional VaR / Expected Shortfall (CVaR / ES) estimation on a returns series. Use when you need a single-number tail-risk summary at a stated confidence level (95%, 99%). Covers historical, parametric (Gaussian / t), and Monte Carlo VaR via quantstats and pyfolio. For GARCH-conditional VaR see garch-volatility; for joint-portfolio VaR via dependence structure see copula-dependency; for path-based scenario VaR see monte-carlo-simulation.
+version: 0.1.0
+description: Value-at-Risk (VaR) and Conditional VaR / Expected Shortfall (CVaR / ES) estimation on a returns series. Use when you need a single-number tail-risk summary at a stated confidence level (95%, 99%). Covers historical, parametric (Gaussian / t), and Monte Carlo VaR via quantstats and pyfolio. For GARCH-conditional VaR see garch-volatility; for joint-portfolio VaR via dependence structure see copula-dependency; for path-based scenario VaR see monte-carlo-simulation. Not for regulatory-grade VaR (Basel III) — use your institution's internal model.
 allowed-tools: Bash, Read, Edit, Write
 license: Apache-2.0 (quantstats); Apache-2.0 (pyfolio)
 metadata:

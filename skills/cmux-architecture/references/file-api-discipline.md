@@ -84,3 +84,7 @@ If behavior may need configuration or a test seam, use a value type or service. 
 Avoid parallel hand-maintained registries. If a list mirrors declared items, derive it via reflection or a macro where practical.
 
 Prefer compile-time invariants to runtime traps. A `guard` plus `assertionFailure` plus fallback often means the type model is too weak.
+
+No free functions. Functionality is always scoped to an entity that owns the responsibility: a method on a value type, an extension on the type the operation belongs to, or a member of the Coordinator/Service/Repository that uses it. Top-level `func` declarations — any visibility, including file-scope `private func` — are banned. The only sanctioned exception is a `@convention(c)` trampoline a C API forces on us, marked with a one-line justification.
+
+Nested types still count for one-major-type-per-file. A `private final class WatcherAttachment` inside `JSONConfigFileWatcher.swift` is a major type. Move it to its own file the moment it has a meaningful body.

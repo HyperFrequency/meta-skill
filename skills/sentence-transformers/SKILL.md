@@ -1,9 +1,9 @@
 ---
 name: sentence-transformers
-description: Framework for state-of-the-art sentence, text, and image embeddings. Provides 5000+ pre-trained models for semantic similarity, clustering, and retrieval. Supports multilingual, domain-specific, and multimodal models. Use for generating embeddings for RAG, semantic search, or similarity tasks. Best for production embedding generation.
+description: Framework for state-of-the-art sentence, text, and image embeddings. Provides 5000+ pre-trained models for semantic similarity, clustering, and retrieval, including multilingual, domain-specific, and multimodal models. Use when generating embeddings locally for RAG, semantic search, clustering, or similarity tasks without an external API. Do NOT use when you need a fully managed/hosted embedding API (use OpenAI Embeddings or Cohere Embed) or task-instruction-conditioned embeddings (use Instructor); also not for generative LLM tasks (use transformers).
 version: 1.0.0
 author: Orchestra Research
-license: MIT
+license: Apache-2.0
 tags: [Sentence Transformers, Embeddings, Semantic Similarity, RAG, Multilingual, Multimodal, Pre-Trained Models, Clustering, Semantic Search, Production]
 dependencies: [sentence-transformers, transformers, torch]
 ---
@@ -131,15 +131,34 @@ print(hits)
 ## Similarity computation
 
 ```python
-# Cosine similarity
-similarity = util.cos_sim(embedding1, embedding2)
+# Preferred (v3+): model.similarity() uses the model's configured
+# similarity function (cosine by default) and returns a score matrix.
+scores = model.similarity(embeddings, embeddings)  # (n, n) tensor
 
-# Dot product
-similarity = util.dot_score(embedding1, embedding2)
-
-# Pairwise cosine similarity
-similarities = util.cos_sim(embeddings, embeddings)
+# Lower-level utilities (still supported)
+similarity = util.cos_sim(embedding1, embedding2)   # cosine
+similarity = util.dot_score(embedding1, embedding2) # dot product
 ```
+
+## Retrieval: query vs. document prompts
+
+For asymmetric search (short query against longer passages), use the
+v5+ `encode_query` / `encode_document` methods. They automatically apply
+the model's configured `query` / `document` (or `passage`/`corpus`)
+prompt and set the retrieval task, improving recall for prompt-aware
+models (e.g., mxbai, E5, Qwen3-Embedding).
+
+```python
+query_embedding = model.encode_query("What is the capital of France?")
+doc_embeddings = model.encode_document([
+    "Paris is the capital of France.",
+    "Berlin is the capital of Germany.",
+])
+scores = model.similarity(query_embedding, doc_embeddings)
+```
+
+Models without saved prompts fall back to plain `encode`, so these
+methods are safe to use everywhere.
 
 ## Batch encoding
 
@@ -157,31 +176,39 @@ embeddings = model.encode(
 
 ## Fine-tuning
 
+Use the modern `SentenceTransformerTrainer` API (v3.0+). It accepts a
+`datasets.Dataset`, a loss, and an optional `SentenceTransformerTrainingArguments`,
+and supports evaluators, multi-GPU, bf16, and Hub push out of the box.
+
 ```python
-from sentence_transformers import InputExample, losses
-from torch.utils.data import DataLoader
+from datasets import load_dataset
+from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+from sentence_transformers.losses import MultipleNegativesRankingLoss
 
-# Training data
-train_examples = [
-    InputExample(texts=['sentence 1', 'sentence 2'], label=0.8),
-    InputExample(texts=['sentence 3', 'sentence 4'], label=0.3),
-]
+model = SentenceTransformer("microsoft/mpnet-base")
 
-train_dataloader = DataLoader(train_examples, batch_size=16)
+# Dataset columns map positionally to the loss's expected inputs
+# (e.g. (anchor, positive, negative) for a triplet loss)
+dataset = load_dataset("sentence-transformers/all-nli", "triplet")
+train_dataset = dataset["train"].select(range(10_000))
+eval_dataset = dataset["dev"].select(range(1_000))
 
-# Loss function
-train_loss = losses.CosineSimilarityLoss(model)
+loss = MultipleNegativesRankingLoss(model)
 
-# Train
-model.fit(
-    train_objectives=[(train_dataloader, train_loss)],
-    epochs=10,
-    warmup_steps=100
+trainer = SentenceTransformerTrainer(
+    model=model,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=loss,
 )
+trainer.train()
 
-# Save
-model.save('my-finetuned-model')
+model.save_pretrained("models/mpnet-base-all-nli")
+# model.push_to_hub("mpnet-base-all-nli")
 ```
+
+> Legacy `model.fit()` with `InputExample` + `DataLoader` still works but
+> is deprecated; prefer the trainer above for new code.
 
 ## LangChain integration
 
@@ -247,6 +274,7 @@ index = VectorStoreIndex.from_documents(documents)
 
 ## Resources
 
+- **Model selection deep-dive**: [references/models.md](references/models.md)
 - **GitHub**: https://github.com/UKPLab/sentence-transformers ⭐ 15,700+
 - **Models**: https://huggingface.co/sentence-transformers
 - **Docs**: https://www.sbert.net

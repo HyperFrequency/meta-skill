@@ -1,6 +1,7 @@
 ---
 name: research-strategy
-description: Conduct systematic research with confidence scoring, source validation, and structured reporting for technology decisions and codebase analysis. Use for complex research tasks, technology selection, or best practice discovery.
+version: 0.1.0
+description: Conduct systematic research with confidence scoring, source validation, and structured reporting for technology decisions and codebase analysis. Use for complex research tasks, technology selection, or best practice discovery. Not for direct code implementation—this skill completes research that informs decisions before handoff to execution.
 ---
 
 # Research Strategy Skill

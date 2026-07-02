@@ -1,8 +1,9 @@
 ---
-name: analyze-kb
-description: Analyze knowledge base structure and update the knowledge-base-analysis.md report
+name: cornelius-analyze-kb
+version: 0.1.0
+description: Analyze the Obsidian "Brain" knowledge base structure (clusters, hubs, bridges, graph stats) via Local Brain Search and regenerate a condensed knowledge-base-analysis.md report. Use WHEN the user asks to analyze, profile, map, or summarize their Brain/Obsidian vault, refresh the KB analysis report, or surface hub/bridge notes and thematic clusters. Do NOT use for editing individual notes, semantic search of a single topic (use Local Brain Search directly), ingesting new sources, or analyzing non-Obsidian repos/codebases (use gitnexus skills instead).
 automation: gated
-allowed-tools: Read, Bash, Glob, Grep
+allowed-tools: Read, Bash, Glob, Edit, Write
 ---
 
 Analyze the Obsidian knowledge base structure and regenerate a **condensed, manageable** analysis report.
@@ -62,7 +63,7 @@ Follow these steps:
 
 7. Analyze thematic clusters, hierarchical organization, and conceptual architecture
 
-7. Use `Edit` or `Write` to update the `knowledge-base-analysis.md` file with a **condensed report** (target: ~600-800 lines max):
+8. Use `Edit` or `Write` to update the `knowledge-base-analysis.md` file with a **condensed report** (target: ~600-800 lines max):
    - Executive summary with key statistics
    - Hierarchical structure mapping (condensed)
    - 6 major thematic hubs with hub nodes (core thesis + key notes only)

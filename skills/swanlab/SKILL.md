@@ -1,6 +1,6 @@
 ---
-name: experiment-tracking-swanlab
-description: Provides guidance for experiment tracking with SwanLab. Use when you need open-source run tracking, local or self-hosted dashboards, and lightweight media logging for ML workflows.
+name: swanlab
+description: Provides guidance for experiment tracking with SwanLab. Use when you need open-source run tracking, local or self-hosted dashboards, and lightweight media logging for ML workflows. Not for managed-only SaaS platforms; use wandb, neptune, or aim for cloud-exclusive solutions.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

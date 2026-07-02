@@ -1,6 +1,7 @@
 ---
 name: nightly-testing
-description: Understanding the Lean/Mathlib nightly testing infrastructure. Use when working on toolchain bumps, adaptation PRs, or investigating nightly CI failures.
+version: 0.1.0
+description: Explains the Lean 4 / Batteries / Mathlib nightly testing infrastructure — the nightly-testing branches, the mathlib4-nightly-testing fork, lean-pr-testing-NNNN branches, bump/v4.X.Y adaptation branches, and nightly-testing-YYYY-MM-DD tags. Use when working on toolchain bumps, Lean release adaptation PRs, investigating nightly CI failures, or figuring out which branch a Lean PR should base off. NOT for general Lean proof debugging, writing/reviewing ordinary Mathlib contributions, stable-release toolchain pinning, or non-Lean CI; for those use the relevant Lean/Mathlib contribution or build skills instead.
 ---
 
 # Nightly Testing

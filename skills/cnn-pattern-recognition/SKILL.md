@@ -1,6 +1,7 @@
 ---
 name: cnn-pattern-recognition
-description: CNN-based pattern recognition on financial price data. Cover both 2-D image CNNs over rendered price charts (torchvision / Keras Conv2D) and 1-D temporal CNNs over OHLCV tensors (Conv1D / nn.Conv1d), with notes on chart construction, look-ahead leakage, and small-model defaults for direction classification or regime tagging.
+version: 0.1.0
+description: CNN-based pattern recognition on financial price data. Cover both 2-D image CNNs over rendered price charts (torchvision / Keras Conv2D) and 1-D temporal CNNs over OHLCV tensors (Conv1D / nn.Conv1d), with notes on chart construction, look-ahead leakage, and small-model defaults for direction classification or regime tagging. Use when the pattern is local in time; NOT for long-range/attention models (use transformers/mamba) or recurrence (use LSTM/GRU).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: Apache-2.0
 metadata:
@@ -167,13 +168,7 @@ Then drop the dataset into any torchvision classifier — e.g. `torchvision.mode
 
 ## Architecture choices
 
-- **Depth**: start at 2–4 conv blocks. CNNs over price overfit fast; deeper is rarely better unless you have millions of bars.
-- **Channel widths**: `32 -> 64 -> 128` is a safe ladder. Doubling each block keeps receptive-field growth and parameter count balanced.
-- **Kernel size**: 1-D over price favours `kernel=3 or 5`. Larger kernels (7, 9) help capture multi-bar patterns; pair with `padding="same"` so the time axis is preserved.
-- **Activations**: ReLU by default. `GELU` or `SiLU` sometimes nudges a few bps on noisy financial data — not worth fighting over.
-- **Pooling**: prefer `AdaptiveAvgPool` over `MaxPool` for regression-style heads; price noise makes max-pool jumpy.
-- **Normalisation**: BatchNorm is fine for big batches; switch to `LayerNorm` or `GroupNorm` if you batch in time-walking blocks where the batch distribution shifts.
-- **Head**: 1 hidden FC then logits. Avoid deep MLP heads — the conv stack already did the work.
+Defaults that work for price CNNs: 2–4 conv blocks (they overfit fast), a `32 -> 64 -> 128` channel ladder, `kernel=3 or 5` for 1-D, ReLU, `AdaptiveAvgPool` over `MaxPool`, and a single FC head. Full tuning rationale (depth, kernels, activations, pooling, normalisation choices) is in [`references/architecture-and-ops.md`](references/architecture-and-ops.md).
 
 ## Common pitfalls
 
@@ -184,68 +179,10 @@ Then drop the dataset into any torchvision classifier — e.g. `torchvision.mode
 5. **Cross-validation that ignores time.** Standard k-fold is **wrong** here. Use a walk-forward / purged split (see `adaptive-wfo-epoch` skill).
 6. **Cached charts going stale.** If you pre-render images and later change the windowing, you must invalidate the cache — date-stamp the cache directory.
 
-## Scaling to production
+## Scaling to production & diagnostics
 
-- **Batch the windowing.** The `np.stack([Xz[i-WINDOW:i] ...])` in the minimal example is O(n*WINDOW) memory. For >1M bars switch to a strided view (`np.lib.stride_tricks.sliding_window_view`) or a streaming `IterableDataset`.
-- **Mixed precision.** `torch.autocast("cuda")` + `GradScaler` cuts memory ~40% on the 2-D image branch with no accuracy loss. The 1-D branch is usually too small to benefit.
-- **Compile.** `model = torch.compile(model)` (PyTorch 2.x) gives a 1.2-2x speedup on these tiny conv stacks. Keras users get the same from `jit_compile=True` in `model.compile`.
-- **Walk-forward retrain.** Don't train once and forget. Schedule a retrain every N bars / N days (see `adaptive-wfo-epoch` skill). The CNN's weights go stale faster than people expect.
-- **Inference latency.** For real-time signal generation, a 1-D CNN on a 64-bar window runs in <100 us on CPU; the image-rendering branch is the bottleneck — pre-render or skip.
-
-## Diagnostics
-
-When the model trains but performs at chance, the order of investigation:
-
-1. Verify labels: shuffle `y` and confirm acc collapses to ~0.5. If it doesn't, you have leakage.
-2. Visualise inputs: plot the first 4 windows. If they all look identical, your normalisation is broken.
-3. Check activations: `torchinfo.summary(model, input_size=(1, 5, WINDOW))` to confirm shapes flow correctly.
-4. Sanity-check with an MLP baseline. If a flat MLP beats your CNN, the CNN is mis-specified (kernel too big, BN exploding).
-5. Loss curve shape: oscillating train loss → LR too high. Flat → LR too low or dead ReLUs.
+For production scaling (strided windowing for >1M bars, mixed precision, `torch.compile`, walk-forward retrain cadence, inference latency) and the step-by-step "trains but performs at chance" diagnostic checklist, see [`references/architecture-and-ops.md`](references/architecture-and-ops.md). Walk-forward retrain and purged splits live in the `adaptive-wfo-epoch` skill.
 
 ## References
 
-### Primary library
-- [PyTorch on GitHub](https://github.com/pytorch/pytorch) — upstream repo, issues, releases (v2.5+)
-- [torchvision on GitHub](https://github.com/pytorch/vision) — Conv2D models and pretrained weights
-- [Keras on GitHub](https://github.com/keras-team/keras) — multi-backend (TF / JAX / Torch); for the Conv1D pipeline
-- [PyTorch documentation (stable)](https://pytorch.org/docs/stable/) — pinned to v2.5
-- [Keras 3 documentation](https://keras.io/) — current 3.x API surface
-- [Keras examples directory (time series)](https://keras.io/examples/timeseries/) — Conv1D FCN, EEG, anomaly detection patterns
-
-### Deep-dive docs (specific pages worth bookmarking)
-- [`torch.nn.Conv1d`](https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html) — input shape `(B, C, T)`, dilation, groups; the bar/window orientation gotcha
-- [`torch.nn.Conv2d`](https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html) — for rendered chart pipelines
-- [`torch.nn.BatchNorm1d / BatchNorm2d`](https://pytorch.org/docs/stable/generated/torch.nn.BatchNorm1d.html) — running mean/var semantics during eval; the silent bug source in walk-forward pipelines
-- [`torch.nn.AdaptiveAvgPool1d`](https://pytorch.org/docs/stable/generated/torch.nn.AdaptiveAvgPool1d.html) — fixed-size head independent of input window length
-- [torchvision models reference](https://pytorch.org/vision/stable/models.html) — `resnet18` / `efficientnet` / `mobilenet`; choose by FLOPs vs accuracy budget
-- [`keras.layers.Conv1D`](https://keras.io/api/layers/convolution_layers/convolution1d/) — channels-last `(B, T, C)` orientation contrasted with PyTorch
-- [Keras time-series classification from scratch](https://keras.io/examples/timeseries/timeseries_classification_from_scratch/) — canonical 1-D FCN walkthrough; the architecture template the snippet above follows
-- [Keras EEG signal classification](https://keras.io/examples/timeseries/eeg_signal_classification/) — deeper Conv1D stack, good reference for longer windows
-- [PyTorch tutorial: training a classifier](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) — the 2-D loop the chart-CNN section adapts
-
-### Adjacent / alternative libraries
-- [KerasCV](https://github.com/keras-team/keras-cv) — modular pretrained vision models (EfficientNet, YOLOX, RetinaNet) when chart classification crosses into detection
-- [timm (PyTorch Image Models)](https://github.com/huggingface/pytorch-image-models) — Ross Wightman's image-model zoo; broader than torchvision, faster to swap backbones
-- [tsai](https://github.com/timeseriesAI/tsai) — fastai-style time-series CNNs (InceptionTime, ResCNN, TST); good 1-D baselines beyond plain Conv1D
-- [aeon](https://github.com/aeon-toolkit/aeon) — scikit-learn-compatible time-series classifier zoo, includes deep models
-- [sktime](https://github.com/sktime/sktime) — broader time-series toolkit; CNN baselines and the canonical UCR/UEA benchmark wrappers
-
-### Academic papers
-- LeCun, Y., Bottou, L., Bengio, Y., & Haffner, P. (1998). "Gradient-Based Learning Applied to Document Recognition." *Proceedings of the IEEE* 86(11), 2278-2324. [DOI: 10.1109/5.726791](https://doi.org/10.1109/5.726791) — the LeNet paper; the 2-D CNN ancestor.
-- Wang, Z., Yan, W., & Oates, T. (2017). "Time Series Classification from Scratch with Deep Neural Networks: A Strong Baseline." *IJCNN 2017*. [arXiv:1611.06455](https://arxiv.org/abs/1611.06455) — FCN / ResNet baselines for 1-D time-series classification; the architecture the Keras example uses.
-- Sezer, O. B., & Ozbayoglu, A. M. (2018). "Algorithmic Financial Trading with Deep Convolutional Neural Networks: Time Series to Image Conversion Approach." *Applied Soft Computing* 70, 525-538. [DOI: 10.1016/j.asoc.2018.04.024](https://doi.org/10.1016/j.asoc.2018.04.024) — the chart-image approach for financial CNN classification.
-- Bai, S., Kolter, J. Z., & Koltun, V. (2018). "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling." [arXiv:1803.01271](https://arxiv.org/abs/1803.01271) — TCN paper; argues 1-D CNN beats LSTM on many sequence tasks; relevant to whether to choose CNN over LSTM in this skill.
-- Ismail Fawaz, H., Forestier, G., Weber, J., Idoumghar, L., & Muller, P.-A. (2019). "Deep Learning for Time Series Classification: A Review." *Data Mining and Knowledge Discovery* 33(4), 917-963. [DOI: 10.1007/s10618-019-00619-1](https://doi.org/10.1007/s10618-019-00619-1) — definitive survey; benchmarks every 1-D CNN family on UCR archive.
-
-### Tutorials & write-ups
-- [PyTorch time-series Conv1D tutorial](https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html) — adapted Conv1D-based sequence models
-- [Keras "Timeseries classification with a Transformer model"](https://keras.io/examples/timeseries/timeseries_classification_transformer/) — direct contrast against the Conv1D pipeline
-- [torchinfo on GitHub](https://github.com/TylerYep/torchinfo) — `summary(model, input_size=(B, C, T))`; the right tool for verifying tensor shapes flow correctly through a Conv1D stack
-
-### Standard datasets / benchmarks
-- UCR / UEA time-series classification archive — [www.timeseriesclassification.com](http://www.timeseriesclassification.com/) — the canonical TSC benchmark; 128 univariate + 30 multivariate datasets
-- Sezer-Ozbayoglu chart-image benchmark (Dow 30, 2007-2017) — used in the original "image conversion approach" paper
-- LOBSTER limit order book data — used in `microstructure-analysis` but the standard 1-D CNN evaluation setup for short-horizon prediction
-
-### Last cross-checked
-2026-05-20 — via Context7 `/pytorch/pytorch` + `/keras-team/keras-io` + WebSearch verification of all paper DOIs/arXiv IDs.
+Full curated reference set — primary library docs (PyTorch / torchvision / Keras 3), adjacent libraries (timm, tsai, aeon, sktime), academic papers (LeNet, Wang 2017 FCN, Sezer-Ozbayoglu chart-image, Bai TCN, Ismail Fawaz survey), tutorials, and benchmark datasets (UCR/UEA, LOBSTER) — is in [`references/references.md`](references/references.md). Last cross-checked 2026-05-20.

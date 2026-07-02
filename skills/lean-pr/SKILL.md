@@ -1,6 +1,7 @@
 ---
 name: lean-pr
-description: PR conventions for the leanprover/lean4 repository. Use when creating pull requests, writing commit messages, or following project conventions for Lean contributions.
+version: 0.1.0
+description: "PR conventions for the leanprover/lean4 core repository — commit/title format (`<type>: <subject>`), `changelog-*` labels, `module`/`prelude` declarations for `src/` files, copyright headers, and concise \"This PR ...\" descriptions. Use when creating a pull request, writing a commit message, or formatting a PR description for a Lean 4 *core* (leanprover/lean4) contribution. WHEN-NOT: do not use for Mathlib PRs (use mathlib-pr) or Mathlib reviews (mathlib-review); not for building Lean/Mathlib (lean-setup, mathlib-build), minimizing repros (lean-mwe), bisecting regressions (lean-bisect), or generic non-Lean GitHub PRs."
 ---
 
 # Lean PR Conventions

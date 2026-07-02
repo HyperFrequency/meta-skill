@@ -269,29 +269,28 @@ G = 10  # More exploration (higher acceptance, more compute)
 
 ### Integration Example
 
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
+The `LookaheadDecoding` class above is conceptual pseudocode that illustrates the
+Jacobi algorithm. The real `hao-ai-lab/LookaheadDecoding` library exposes no such
+class — it monkey-patches Hugging Face models via `lade.augment_all()` so that the
+standard `model.generate(...)` runs accelerated.
 
-# Load model
+```python
+import os
+os.environ["USE_LADE"] = "1"  # required; or export USE_LADE=1 before launch
+import lade
+lade.augment_all()
+# LEVEL = N-gram size (N), WINDOW_SIZE = lookahead width (W), GUESS_SET_SIZE = G
+# Optional: USE_FLASH=True to enable FlashAttention
+lade.config_lade(LEVEL=5, WINDOW_SIZE=15, GUESS_SET_SIZE=15, DEBUG=0)
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
 model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf")
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
 
-# Initialize Lookahead
-lookahead = LookaheadDecoding(
-    model=model,
-    W=15,  # Window size
-    N=5,   # N-gram size
-    G=5    # Guess size
-)
-
-# Generate
 prompt = "Write a Python function to calculate fibonacci:"
-input_ids = tokenizer.encode(prompt, return_tensors="pt")
-
-output = lookahead.generate(input_ids, max_new_tokens=256)
-response = tokenizer.decode(output[0], skip_special_tokens=True)
-
-print(response)
+inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+output = model.generate(**inputs, max_new_tokens=256)  # accelerated by lade
+print(tokenizer.decode(output[0], skip_special_tokens=True))
 ```
 
 ### Optimization Tips

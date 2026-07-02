@@ -2,6 +2,13 @@
 
 Integration with vector stores, LangSmith observability, and deployment.
 
+> **v1 note:** Vector stores, LangSmith, model providers, tools, caching, and
+> callbacks are current. The **Memory integrations** section uses the legacy
+> `ConversationBufferMemory` (deprecated in v1, now in `langchain-classic`); in
+> v1, persist agent state with a LangGraph checkpointer (e.g.
+> `langgraph-checkpoint-postgres`, `langgraph-checkpoint-redis`) and a
+> `thread_id`. The `*ChatMessageHistory` backends below remain usable.
+
 ## Vector store integrations
 
 ### Chroma (local, open-source)
@@ -427,7 +434,11 @@ agent = create_sql_agent(
 result = agent.run("How many users are in the database?")
 ```
 
-## Memory integrations
+## Memory integrations (legacy 0.x)
+
+In v1, prefer a LangGraph checkpointer + `thread_id` over `ConversationBufferMemory`
+(see the v1 note above). The `*ChatMessageHistory` classes still work as the
+underlying store.
 
 ### Redis
 

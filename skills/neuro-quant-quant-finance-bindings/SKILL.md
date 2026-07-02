@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-quant-finance-bindings
+version: 0.1.0
 description: >
   Routes quantitative finance pricing, curve-building, and risk/reporting work
   through QuantLib-SWIG bindings (plus quantstats/pyfolio for risk reports) in
@@ -10,7 +11,8 @@ description: >
   handoff-template), then escalates to deep-tool-wiki or 02-KB-main for full
   API documentation. For performance tearsheets use
   neuro-quant-tearsheet-generator; for running backtests use the vectorbt or
-  nautilus-trader skills.
+  nautilus-trader skills. Do NOT use for backtesting, tearsheets, or live
+  execution—use those sibling skills instead.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

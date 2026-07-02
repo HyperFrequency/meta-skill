@@ -1,6 +1,7 @@
 ---
-name: evaluation
-description: "This skill should be used when building agent evaluation systems: deterministic checks, regression suites, multi-dimensional rubrics, quality gates, production monitoring, baseline comparison, and outcome measurement for agent pipelines."
+name: ce-evaluation
+version: 0.1.0
+description: "This skill should be used when building agent evaluation systems: deterministic checks, regression suites, multi-dimensional rubrics, quality gates, production monitoring, baseline comparison, and outcome measurement for agent pipelines. Do not use for LLM judge design, pairwise comparison, or calibration—use `advanced-evaluation` instead."
 ---
 
 # Evaluation Methods for Agent Systems

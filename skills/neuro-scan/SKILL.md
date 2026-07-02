@@ -1,6 +1,7 @@
 ---
 name: neuro-scan
-description: Brain scanner that produces a structured health report and queues remediation tasks. Use this whenever the user says /neuro-scan, asks to check pending jobs, find knowledge gaps, scan for stale wikis, audit failures in hooks/skills/cron/harness-to-harness comms, or when scheduled hourly by cron. Also trigger when the user says "what's broken", "audit the brain", "what should I work on next", or is about to start a work session and wants situational awareness. Runs six independent scan passes — pending jobs, self-improvement proposals, failure logs, knowledge-graph gaps, stale wikis, and upstream doc drift — then writes a dated report to 06-Recursive/daily.md and auto-queues remediation tasks with source=neuro-scan to 00-neuro-link/tasks/.
+version: 0.1.0
+description: Brain scanner that produces a structured health report and queues remediation tasks. Use this whenever the user says /neuro-scan, asks to check pending jobs, find knowledge gaps, scan for stale wikis, audit failures in hooks/skills/cron/harness-to-harness comms, or when scheduled hourly by cron. Also trigger when the user says "what's broken", "audit the brain", "what should I work on next", or is about to start a work session and wants situational awareness. Runs six independent scan passes — pending jobs, self-improvement proposals, failure logs, knowledge-graph gaps, stale wikis, and upstream doc drift — then writes a dated report to 06-Recursive/daily.md and auto-queues remediation tasks with source=neuro-scan to 00-neuro-link/tasks/. NOT for fix execution — use /neuro-surgery (HITL) or /hyper-sleep (non-HITL) for remediation.
 ---
 
 # /neuro-scan

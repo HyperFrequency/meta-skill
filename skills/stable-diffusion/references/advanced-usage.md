@@ -714,3 +714,57 @@ device_map = infer_auto_device_map(
 # Dispatch model
 pipe.unet = dispatch_model(pipe.unet, device_map=device_map)
 ```
+
+## End-to-end workflows
+
+### Workflow 1: High-quality SDXL generation
+
+```python
+from diffusers import StableDiffusionXLPipeline, DPMSolverMultistepScheduler
+import torch
+
+# 1. Load SDXL with optimizations
+pipe = StableDiffusionXLPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16,
+    variant="fp16"
+)
+pipe.to("cuda")
+pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+pipe.enable_model_cpu_offload()
+
+# 2. Generate with quality settings
+image = pipe(
+    prompt="A majestic lion in the savanna, golden hour lighting, 8k, detailed fur",
+    negative_prompt="blurry, low quality, cartoon, anime, sketch",
+    num_inference_steps=30,
+    guidance_scale=7.5,
+    height=1024,
+    width=1024
+).images[0]
+```
+
+### Workflow 2: Fast prototyping with LCM
+
+```python
+from diffusers import AutoPipelineForText2Image, LCMScheduler
+import torch
+
+# Use LCM for 4-8 step generation
+pipe = AutoPipelineForText2Image.from_pretrained(
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16
+).to("cuda")
+
+# Load LCM LoRA for fast generation
+pipe.load_lora_weights("latent-consistency/lcm-lora-sdxl")
+pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+pipe.fuse_lora()
+
+# Generate in ~1 second
+image = pipe(
+    "A beautiful landscape",
+    num_inference_steps=4,
+    guidance_scale=1.0
+).images[0]
+```

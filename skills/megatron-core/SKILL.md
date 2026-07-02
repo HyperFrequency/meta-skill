@@ -1,6 +1,6 @@
 ---
-name: training-llms-megatron
-description: Trains large language models (2B-462B parameters) using NVIDIA Megatron-Core with advanced parallelism strategies. Use when training models >1B parameters, need maximum GPU efficiency (47% MFU on H100), or require tensor/pipeline/sequence/context/expert parallelism. Production-ready framework used for Nemotron, LLaMA, DeepSeek.
+name: megatron-core
+description: Trains large language models (2B-462B parameters) using NVIDIA Megatron-Core with advanced parallelism strategies. Use when training models >1B parameters, need maximum GPU efficiency (47% MFU on H100), or require tensor/pipeline/sequence/context/expert parallelism. Production-ready framework used for Nemotron, LLaMA, DeepSeek. Not for models <10B or prototyping—use PyTorch FSDP, DeepSpeed, or Hugging Face Accelerate instead.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

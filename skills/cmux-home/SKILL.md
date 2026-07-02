@@ -1,6 +1,7 @@
 ---
 name: cmux-home
-description: "Use when developing cmux-home, explaining its cmux event-driven Rust TUI, or adapting it into a custom cmux launcher for parallel agent workflows across worktrees, multiple checkouts, SSH hosts, VMs, browsers, or review dashboards."
+version: 0.1.0
+description: "Use when developing cmux-home, explaining its cmux event-driven Rust TUI, or adapting it into a custom cmux launcher for parallel agent workflows across worktrees, multiple checkouts, SSH hosts, VMs, browsers, or review dashboards. Not for general cmux operations or troubleshooting; see cmux-cli skill instead."
 ---
 
 # cmux-home

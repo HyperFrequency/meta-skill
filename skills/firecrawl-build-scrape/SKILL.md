@@ -1,5 +1,6 @@
 ---
 name: firecrawl-build-scrape
+version: 0.1.0
 description: Integrate Firecrawl `/scrape` into product code for single-page extraction. Use when an app already has a URL and needs markdown, HTML, links, screenshots, metadata, or structured page output. Prefer this skill over broader crawl patterns when the feature is page-level.
 license: ISC
 metadata:

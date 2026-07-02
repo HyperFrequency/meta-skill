@@ -1,6 +1,7 @@
 ---
 name: adjacent-tools-code-docs
-description: Maintain a comprehensive toolbox wiki for third-party repos the user or their agents use often but do not own (vectorbt.pro, nautilus_trader, qmd, turbovault, optuna, ray, pufferlib, polars, etc). Use this whenever the user says /adjacent-tools-code-docs, asks to document a third-party tool, mentions a new dependency they will rely on regularly, or wants a local searchable wiki for an external library. Also trigger when the user says "add X to the toolbox", "document this library", "keep track of this tool", or the user asks questions about a library that isn't yet in 08-code-docs/toolbox/. Follows the Karpathy LLM-Wiki pattern with YAML frontmatter, citations, open questions, and contradictions. Keeps synced with upstream via doc-sync-embed-verify on releases. Outputs to 08-code-docs/toolbox/<tool-name>/.
+version: 0.1.0
+description: Maintain a comprehensive toolbox wiki for third-party repos the user or their agents use often but do not own (vectorbt.pro, nautilus_trader, qmd, turbovault, optuna, ray, pufferlib, polars, etc). Use this whenever the user says /adjacent-tools-code-docs, asks to document a third-party tool, mentions a new dependency they will rely on regularly, or wants a local searchable wiki for an external library. Also trigger when the user says "add X to the toolbox", "document this library", "keep track of this tool", or the user asks questions about a library that isn't yet in 08-code-docs/toolbox/. Follows the Karpathy LLM-Wiki pattern with YAML frontmatter, citations, open questions, and contradictions. Keeps synced with upstream via doc-sync-embed-verify on releases. Outputs to 08-code-docs/toolbox/<tool-name>/. Do not use for HyperFrequency forks — use /deep-tool-wiki instead.
 ---
 
 # /adjacent-tools-code-docs
@@ -124,6 +125,6 @@ If the user starts contributing to a tool (PRs upstream), or forks it, this skil
 
 ## Scripts
 
-- `scripts/sync_upstream.sh` — single-tool sync
-- `scripts/init_tool.sh` — new tool registration end-to-end
-- `scripts/diff_affected_pages.py` — compute which pages need regen from a CHANGELOG diff
+- `scripts/sync_upstream.sh` — single-tool sync (refresh mirror, diff CHANGELOG, flag affected pages)
+
+New-tool registration (Step 1–6 above) and the CHANGELOG-diff → affected-pages computation are run inline by following this skill; see `references/sync-patterns.md` for the diff mapping.

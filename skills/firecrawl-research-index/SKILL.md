@@ -1,6 +1,8 @@
 ---
 name: firecrawl-research-index
-description: Find the papers that answer a research query with Firecrawl Research, using semantic search, semantic and structural expansion, and in-body verification. Always use this skill for any literature-finding / paper-retrieval task — single-paper lookups or full multi-paper sets.
+version: 0.1.0
+description: >-
+  Find the research papers that answer a query using Firecrawl Research — semantic (HyDE) abstract search, semantic/structural expansion via citations and references, canonical metadata inspection, and in-body full-text verification. WHEN — any literature-finding or paper-retrieval task: a single named or described paper, a method family, an enumeration of works, leaderboard-topping papers, or org/author-filtered sets; trigger on "find the paper that…", "papers that do X", "alternatives to Y", "best on benchmark Z", "what does paper X cite / build on". WHEN NOT — general multi-source web research or fact-checked reports (use deep-research / parallel-web), AI-summarized web answers with citations (perplexity-search / research-lookup), DOI→BibTeX or citation formatting (citation-management / pyzotero), structured experimental-data extraction from full text (bgpt-paper-search), or writing a literature-review narrative (literature-review). This skill locates and returns the papers themselves, not prose.
 ---
 
 # Firecrawl Research Index

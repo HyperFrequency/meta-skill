@@ -1,6 +1,7 @@
 ---
-name: context-optimization
-description: "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality."
+name: ce-context-optimization
+version: 0.1.0
+description: "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality. Not for diagnosing context degradation (use context-degradation), explaining why context windows work (use context-fundamentals), designing handoff summaries (use context-compression), or file-backed storage (use filesystem-context)."
 ---
 
 # Context Optimization Techniques

@@ -1,5 +1,6 @@
 ---
 name: forked-repos-with-changes
+version: 0.1.0
 description: Track repos the user has forked under the HyperFrequency org or personal account, maintaining semantic understanding of the functional diff between upstream and fork, and generating enriched docs for fork-specific functionality. Use this whenever the user says /forked-repos-with-changes, asks to track a fork, add a fork, review functional differences between upstream and fork, or hands off a forked repo expecting it documented. Also trigger when the user says "track this fork", "what did we change upstream", "generate fork docs", or mentions a fork repository in the context of adding it to the brain. Outputs to 08-code-docs/forked-up/<repo>/ and, for HyperFrequency org forks, feeds the shared Devin DeepWiki via doc-sync-embed-verify on gh push. Uses LLM-based semantic diff rather than git diff to produce readable functional differences, and pins the fork_point + last_merge_base in frontmatter so resync catches upstream changes that haven't been rebased.
 ---
 
@@ -42,12 +43,13 @@ Store both. `fork_point` is the historical divergence; `last_merge_base` moves f
 git diff --name-only $LAST_MERGE_BASE HEAD > changed-files.txt
 ```
 
-Categorize via `scripts/categorize_changes.py`:
+Categorization is handled inside `scripts/compute_fork_diff.py` (the `categorize_change()` step):
 
 - `new` — files added in the fork
 - `modified` — files changed vs upstream
 - `deleted` — files removed in the fork
-- Ignore: vendored deps, generated code, lockfiles, formatting-only diffs (detected via `diff --stat` threshold)
+- `cosmetic` — formatting-only diffs (sub-2% of lines touched), dropped before the LLM pass
+- Ignore: vendored deps (`vendor/`, `node_modules/`), `.github/`, generated code, lockfiles
 
 ### Step 4 — LLM-based semantic diff
 
@@ -145,6 +147,9 @@ If the user deletes a fork or stops contributing to it:
 
 ## Scripts
 
-- `scripts/compute_fork_diff.py` — end-to-end Step 3–4 runner
-- `scripts/categorize_changes.py` — new/modified/deleted/cosmetic classifier
-- `scripts/init_fork.sh` — new fork registration end-to-end
+- `scripts/compute_fork_diff.py` — end-to-end Step 3–4 runner. Computes the merge base,
+  enumerates changed files, classifies each as new/modified/deleted/cosmetic, runs the
+  per-file LLM semantic summary, and writes `diff-summary.json`. Usage:
+  `compute_fork_diff.py <fork-path> <upstream-url> [--since <sha>] [--out <dir>]`.
+  Steps 1–2, 5–7 (metadata, wiki generation, registration) are driven by the agent
+  using this skill's flow, not by a separate script.

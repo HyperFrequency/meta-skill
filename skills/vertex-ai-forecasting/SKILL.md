@@ -1,5 +1,6 @@
 ---
 name: vertex-ai-forecasting
+version: 0.1.0
 description: Google Cloud Vertex AI managed time series forecasting via the `google-cloud-aiplatform` Python SDK. Covers the four supported training methods (AutoML, Temporal Fusion Transformer, TiDE / Time-Series Dense Encoder, Seq2Seq+), `TimeSeriesDataset`, training-job submission, batch prediction, and evaluation. Trigger on phrases like "Vertex AI forecast", "AutoML forecasting", "GCP forecasting pipeline", "TimeSeriesDataset", "managed forecasting on Google Cloud", "TiDE forecast", "AutoMLForecastingTrainingJob", "deploy a forecast model to Vertex". Use when the user wants a *managed* solution (no infra, batch predictions to GCS / BigQuery) instead of locally trained models.
 license: Apache-2.0
 metadata:

@@ -1,6 +1,7 @@
 ---
 name: crawl-ingest-update
-description: Source ingestion pipeline that deposits raw content into 01-raw/ (SHA256-deduped), classifies into 01-sorted/, and optionally synthesizes wiki pages to 02-KB-main/. Use this whenever the user says /crawl-ingest-update, /crawl-ingest, asks to ingest a paper/book/repo/video/URL/vault, or drops a link expecting it to be added to the brain. Also trigger when the user says "grab this for the brain", "add this source", "read this paper into the KB", or forwards a PDF/URL expecting it indexed. Supports web pages, web crawls, GitHub repos, YouTube transcripts, standard PDFs, math-dense PDFs (via Marker v1.10+ + MinerU 2.5 MLX cross-check), arXiv papers (prefers ar5iv HTML → falls back to arXiv S3 LaTeX → last resort Marker on the PDF), math books, Stacks Project chapters (JSON API), nLab dumps, Wikipedia math bulk dumps, and Obsidian vault imports. MathWorld scraping is blocked (Wolfram TOS). Always preserves $$...$$ blocks byte-for-byte; canonicalizes equations via pylatexenc + latex2sympy2_extended + SymPy srepr.
+version: 0.1.0
+description: Source ingestion pipeline that deposits raw content into 01-raw/ (SHA256-deduped), classifies into 01-sorted/, and optionally synthesizes wiki pages to 02-KB-main/. Use whenever the user says /crawl-ingest-update or /crawl-ingest, asks to ingest a paper/book/repo/video/URL/vault, drops a link expecting it added to the brain, or says "grab this for the brain", "add this source", "read this paper into the KB", or forwards a PDF/URL expecting it indexed. Handles web pages and crawls, GitHub repos, YouTube transcripts, standard and math-dense PDFs, arXiv papers, math books, Stacks Project, nLab, Wikipedia math dumps, and Obsidian vault imports, preserving display math byte-for-byte. Do NOT use to scrape MathWorld (Wolfram TOS forbids it), for one-off doc/research lookups that need not be stored (use research/web-search skills), or to curate pages already ingested (use /wiki-curate). Routing, tool versions, and the LaTeX canonicalization contract live in the body and references/.
 ---
 
 # /crawl-ingest-update
@@ -106,9 +107,9 @@ See `references/arxiv-ar5iv.md` for the ID parsing and fallback logic.
 
 These have official bulk APIs or dumps. Never scrape them with Marker.
 
-- **Stacks Project**: `https://stacks.math.columbia.edu/api/tag/<tag>` returns structured JSON with LaTeX content. Use `scripts/ingest_stacks.py`.
-- **nLab**: request the dump once from the maintainers; store locally; query offline. `scripts/ingest_nlab.py` handles format.
-- **Wikipedia math**: use the bulk dump (20-ish GB decompressed). `scripts/ingest_wikipedia_math.py` extracts articles from the math portal.
+- **Stacks Project**: `https://stacks.math.columbia.edu/api/tag/<tag>` returns structured JSON with LaTeX content — fetch directly and write the LaTeX body to `01-raw/`.
+- **nLab**: request the dump once from the maintainers; store locally; query offline.
+- **Wikipedia math**: use the bulk dump (20-ish GB decompressed); extract articles from the math portal locally.
 
 ## LLM-assisted source discovery
 
@@ -140,6 +141,5 @@ Before starting any pipeline, compute SHA256 of the source. Check `01-raw/<sha25
 
 - `scripts/ingest_arxiv.py` — arXiv end-to-end (ar5iv → S3 → Marker fallback)
 - `scripts/ingest_pdf_deep.sh` — Marker + MinerU + cross-check for math-dense PDFs
-- `scripts/ingest_stacks.py` — Stacks Project JSON API
 - `scripts/math_crosscheck.py` — merge Marker + MinerU outputs
 - `scripts/canonicalize.py` — LaTeX canonicalization w/ macro expansion

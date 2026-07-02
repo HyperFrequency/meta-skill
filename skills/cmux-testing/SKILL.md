@@ -1,6 +1,7 @@
 ---
 name: cmux-testing
-description: "cmux testing rules for Swift Testing, test target compilation, and package/refactor validation. Use when adding or changing tests, touching package/refactor code, or deciding whether reload.sh is enough validation."
+version: 0.1.0
+description: "cmux testing rules for Swift Testing, test target compilation, and package/refactor validation. Use when adding or changing tests in the cmux app/packages, touching package/refactor code, or deciding whether reload.sh is enough validation. Not for general Swift or XCTest development guidance outside the cmux codebase, non-test app code, or CI/build config unrelated to test targets."
 ---
 
 # cmux Testing

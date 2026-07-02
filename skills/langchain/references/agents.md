@@ -2,6 +2,13 @@
 
 Complete guide to building agents with ReAct, tool calling, and streaming.
 
+> **v1 note:** Prefer `create_agent` (shown first below). Sections marked
+> **(legacy 0.x)** use `create_tool_calling_agent` / `AgentExecutor` /
+> `ConversationBufferMemory`, which are deprecated in v1 and now live in the
+> `langchain-classic` package (`from langchain_classic.agents import AgentExecutor`,
+> `from langchain_classic.memory import ConversationBufferMemory`). They are kept
+> here only for migrating existing code.
+
 ## What are agents?
 
 Agents combine language models with tools to solve complex tasks through reasoning and action:
@@ -122,9 +129,11 @@ system_prompt = """You are a customer support agent.
 
 ## Agent types
 
-### 1. Tool-calling agent (recommended)
+### 1. Tool-calling agent (legacy 0.x)
 
-Uses native function calling for best performance:
+In v1, prefer `create_agent` (above). The `create_tool_calling_agent` +
+`AgentExecutor` pattern below is the deprecated 0.x equivalent, kept for
+migration; it requires the `langchain-classic` package:
 
 ```python
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -195,9 +204,11 @@ agent = create_react_agent(
 result = agent_executor.invoke({"input": "What is 25 * 17 + 142?"})
 ```
 
-### 3. Conversational agent (with memory)
+### 3. Conversational agent (with memory) (legacy 0.x)
 
-Remembers conversation history:
+Remembers conversation history. In v1, give `create_agent` a LangGraph
+checkpointer and pass a `thread_id` instead of `ConversationBufferMemory`
+(see "Memory" in the SKILL.md version table):
 
 ```python
 from langchain.agents import create_conversational_retrieval_agent

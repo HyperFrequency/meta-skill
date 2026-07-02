@@ -1,6 +1,7 @@
 ---
 name: cmux-backend
-description: "Backend TypeScript and Cloud VM development rules for cmux. Use when editing web/app/api, web/services, backend scripts, Cloud VM lifecycle, provider integrations, Postgres, Stack Auth pricing gates, migrations, or provider image build scripts."
+version: 0.1.0
+description: "Backend TypeScript and Cloud VM development rules for cmux. Use when editing web/app/api, web/services, backend scripts, Cloud VM lifecycle, provider integrations, Postgres, Stack Auth pricing gates, migrations, or provider image build scripts. Not for frontend React components or UI work—see cmux-frontend for those."
 ---
 
 # cmux Backend

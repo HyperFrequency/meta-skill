@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-execution-ui-ops
+version: 0.1.0
 description: >
   Operate, inspect, and document the Nautilus EXECUTION / UI / OPS surfaces in the
   neuro-quant monorepo: nautilus_admin (control plane), Nautilus-Web-UI (trader
@@ -9,7 +10,8 @@ description: >
   and execution state separated. Use when the task says "nautilus admin", "web ui",
   "prediction service", "execution dashboard", "operator health check", or
   "do not mix ui/strategy/execution state". For the backtest ENGINE itself and
-  strategy authoring use nautilus-trader.
+  strategy authoring use nautilus-trader. Not for strategy research, signal generation,
+  or algorithm optimization — route those to nautilus-trader or market-research-runtime.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

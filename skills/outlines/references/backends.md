@@ -2,6 +2,13 @@
 
 Complete guide to configuring Outlines with different model backends.
 
+> API version: loaders here use the pre-1.0 (v0) API. On `outlines>=1.0` use
+> the `outlines.from_*` constructors instead — e.g.
+> `outlines.from_transformers(hf_model, hf_tokenizer)`,
+> `outlines.from_llamacpp(Llama.from_pretrained(...))`,
+> `outlines.from_vllm_offline(LLM(id))` / `outlines.from_vllm(client, id)`,
+> `outlines.from_openai(OpenAI())`.
+
 ## Table of Contents
 - Local Models (Transformers, llama.cpp, vLLM)
 - API Models (OpenAI)

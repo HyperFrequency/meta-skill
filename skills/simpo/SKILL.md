@@ -1,6 +1,6 @@
 ---
-name: simpo-training
-description: Simple Preference Optimization for LLM alignment. Reference-free alternative to DPO with better performance (+6.4 points on AlpacaEval 2.0). No reference model needed, more efficient than DPO. Use for preference alignment when want simpler, faster training than DPO/PPO.
+name: simpo
+description: Simple Preference Optimization (SimPO) for LLM alignment — a reference-free alternative to DPO that uses length-normalized average log-probability as the implicit reward plus a target reward margin, outperforming DPO (+6.4 points on AlpacaEval 2.0) with no reference model and lower memory/compute. Use for single-node preference alignment on chosen/rejected pairs when you want simpler, faster training than DPO/PPO/GRPO. NOT for multi-node distributed RLHF (use OpenRLHF), when an explicit reference-model KL baseline is required (use DPO), when you need a reward model or online rollouts (use PPO/GRPO), or when you only have prompt/SFT data with no preference pairs.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -13,6 +13,8 @@ dependencies: [torch, transformers, datasets, trl, accelerate]
 ## Quick start
 
 SimPO is a reference-free preference optimization method that outperforms DPO without needing a reference model.
+
+**Core idea**: the reward is the length-normalized average log-probability of a sequence, `r(x,y) = (beta / |y|) * sum log pi(y_t | x, y_<t)`, and the loss adds a target margin `gamma` between chosen and rejected rewards: `-log sigmoid(r_chosen - r_rejected - gamma)`. Length normalization removes DPO's length bias and the explicit margin removes the need for a reference policy. Tune via the two knobs `beta` (reward scale) and `gamma_beta_ratio` (= gamma/beta). See [references/loss-functions.md](references/loss-functions.md) for the full derivation.
 
 **Installation**:
 ```bash
@@ -138,10 +140,11 @@ gradient_accumulation_steps: 16
 - **PPO**: Maximum control, need reward model, complex setup
 - **GRPO**: Memory-efficient RL, no critic
 
-**Use alternatives instead**:
-- **OpenRLHF**: Multi-node distributed training, PPO/GRPO
-- **TRL**: Need multiple methods in one framework
-- **DPO**: Established baseline comparison
+**Use alternatives instead** (sibling skills):
+- **[openrlhf](../openrlhf)**: Multi-node distributed RLHF (PPO/GRPO/REINFORCE++)
+- **[grpo-rl-training](../grpo-rl-training)**: Critic-free RL with online rollouts
+- **[verl](../verl)** / **[slime](../slime)**: Large-scale RL post-training frameworks
+- **[trl-fine-tuning](../trl-fine-tuning)**: DPO, KTO, ORPO and many methods in one framework (includes a reference-model DPO baseline for comparison)
 
 ## Common issues
 

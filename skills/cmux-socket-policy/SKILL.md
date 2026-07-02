@@ -1,6 +1,7 @@
 ---
 name: cmux-socket-policy
-description: "Socket command threading and focus policy for cmux CLI/socket work. Use when adding or changing socket commands, CLI commands, telemetry commands, focus/select/open/close/send-key behavior, or automation that could steal app focus."
+version: 0.1.0
+description: "Socket command threading and focus policy for cmux CLI/socket work: keep telemetry hot paths off the main thread and stop non-focus commands from stealing macOS app focus. Use when adding or changing socket commands, CLI commands, telemetry commands (report_*, ports_kick), or focus/select/open/close/send-key behavior, or reviewing automation that could steal app focus or block the main actor. Do NOT use for general cmux feature work unrelated to socket/CLI command handling, non-cmux apps, UI/rendering changes with no socket-command or focus dimension, or generic Swift concurrency questions outside the socket command path."
 ---
 
 # cmux Socket Policy

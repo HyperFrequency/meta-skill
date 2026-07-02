@@ -1,6 +1,6 @@
 ---
-name: quantizing-models-bitsandbytes
-description: Quantizes LLMs to 8-bit or 4-bit for 50-75% memory reduction with minimal accuracy loss. Use when GPU memory is limited, need to fit larger models, or want faster inference. Supports INT8, NF4, FP4 formats, QLoRA training, and 8-bit optimizers. Works with HuggingFace Transformers.
+name: bitsandbytes
+description: Quantizes LLMs to 8-bit (INT8/LLM.int8()) or 4-bit (NF4/FP4) for 50-75% memory reduction with minimal accuracy loss, plus QLoRA fine-tuning and 8-bit/paged optimizers via HuggingFace Transformers. Use when GPU memory is limited, you need to fit a larger model on one GPU, or want to fine-tune large models on consumer GPUs with QLoRA. Do NOT use for production or low-latency serving (use GPTQ/AWQ for faster inference instead), CPU inference (use GGUF/llama.cpp), H100 FP8 paths, or when accuracy is critical and memory is not constrained (keep full precision).
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -13,6 +13,8 @@ dependencies: [bitsandbytes, transformers, accelerate, torch]
 ## Quick start
 
 bitsandbytes reduces LLM memory by 50% (8-bit) or 75% (4-bit) with <1% accuracy loss.
+
+> Note: bitsandbytes optimizes for **memory, not latency**. 8-bit (LLM.int8()) and 4-bit inference are usually *slower* than FP16 because weights are dequantized on the fly. For throughput/serving, reach for GPTQ/AWQ instead — see "When to use vs alternatives".
 
 **Installation**:
 ```bash
@@ -104,11 +106,14 @@ For 4-bit (maximum memory savings):
 ```python
 config = BitsAndBytesConfig(
     load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,  # Compute in FP16
-    bnb_4bit_quant_type="nf4",  # NormalFloat4 (recommended)
-    bnb_4bit_use_double_quant=True  # Nested quantization
+    bnb_4bit_compute_dtype=torch.bfloat16,  # bf16 recommended on Ampere+ (more stable than fp16); fp16 ok on Turing
+    bnb_4bit_quant_type="nf4",  # NormalFloat4 (recommended); "fp4" is the alternative
+    bnb_4bit_use_double_quant=True,  # Nested/double quantization, saves ~0.4 bits/param
+    # bnb_4bit_quant_storage=torch.bfloat16,  # set to match compute dtype for FSDP multi-GPU QLoRA
 )
 ```
+
+> `bnb_4bit_compute_dtype` only sets the dtype of the de-quantized matmul; weights stay 4-bit in memory. Match `bnb_4bit_quant_storage` to the compute dtype when sharding a 4-bit model with FSDP (see references/qlora-training.md).
 
 **Step 4: Load and verify model**
 
@@ -324,6 +329,8 @@ print(f"Memory used: {(after-before)/1e9:.2f}GB")
 - **GGUF**: CPU inference (llama.cpp)
 - **FP8**: H100 GPUs (hardware FP8 faster)
 - **Full precision**: Accuracy critical, memory not constrained
+
+**Sibling skills:** `transformers` (model loading / generation that wraps these configs) and the `peft` LoRA APIs used in Workflow 2 — pair them with this skill for the full QLoRA loop.
 
 ## Common issues
 

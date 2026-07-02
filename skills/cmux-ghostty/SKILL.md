@@ -1,6 +1,7 @@
 ---
 name: cmux-ghostty
-description: "Ghostty submodule and GhosttyKit workflow rules for cmux. Use when modifying the ghostty submodule, rebuilding GhosttyKit.xcframework, updating the parent submodule pointer, or documenting fork conflict notes."
+version: 0.1.0
+description: "Ghostty submodule and GhosttyKit workflow rules for cmux. Use when modifying the ghostty submodule, rebuilding GhosttyKit.xcframework, updating the parent submodule pointer, or documenting fork conflict notes. Do not use for general cmux terminal multiplexer setup or Ghostty terminal usage — use cmux-terminal instead."
 ---
 
 # cmux Ghostty

@@ -1,6 +1,6 @@
 ---
-name: evaluating-code-models
-description: Evaluates code generation models across HumanEval, MBPP, MultiPL-E, and 15+ benchmarks with pass@k metrics. Use when benchmarking code models, comparing coding abilities, testing multi-language support, or measuring code generation quality. Industry standard from BigCode Project used by HuggingFace leaderboards.
+name: bigcode-evaluation-harness
+description: Evaluates code generation models across HumanEval, MBPP, MultiPL-E, and 15+ benchmarks with pass@k metrics. Use when benchmarking code models, comparing coding abilities, testing multi-language support, or measuring code generation quality. Industry standard from BigCode Project used by HuggingFace leaderboards. Do NOT use for general-knowledge LLM benchmarks like MMLU/GSM8K (use lm-evaluation-harness), real-world GitHub issue resolution (SWE-bench), contamination-free live coding tasks (LiveCodeBench), or code-understanding tasks like clone/defect detection (CodeXGLUE); for stricter HumanEval+/MBPP+ test suites prefer EvalPlus.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -307,66 +307,13 @@ print(df.to_markdown(index=False))
 
 ## Common Issues
 
-**Issue: Different results than reported in papers**
+Most frequent fixes (full catalog in [references/issues.md](references/issues.md)):
 
-Check these factors:
-```bash
-# 1. Verify n_samples (need 200 for accurate pass@k)
---n_samples 200
-
-# 2. Check temperature (0.2 for greedy-ish, 0.8 for sampling)
---temperature 0.8
-
-# 3. Verify task name matches exactly
---tasks humaneval  # Not "human_eval" or "HumanEval"
-
-# 4. Check max_length_generation
---max_length_generation 512  # Increase for longer problems
-```
-
-**Issue: CUDA out of memory**
-
-```bash
-# Use quantization
---load_in_8bit
-# OR
---load_in_4bit
-
-# Reduce batch size
---batch_size 1
-
-# Set memory limit
---max_memory_per_gpu "20GiB"
-```
-
-**Issue: Code execution hangs or times out**
-
-Use Docker for safe execution:
-```bash
-# Generate on host (no execution)
---generation_only --save_generations
-
-# Evaluate in Docker
-docker run ... --allow_code_execution --load_generations_path ...
-```
-
-**Issue: Low scores on instruction models**
-
-Ensure proper instruction formatting:
-```bash
-# Use instruction-specific tasks
---tasks instruct-humaneval
-
-# Set instruction tokens for your model
---instruction_tokens "<s>[INST],</s>,[/INST]"
-```
-
-**Issue: MultiPL-E language failures**
-
-Use the dedicated Docker image:
-```bash
-docker pull ghcr.io/bigcode-project/evaluation-harness-multiple
-```
+- **Results don't match paper/leaderboard**: use `--n_samples 200`, match the paper's `--temperature` (0.2 near-greedy vs 0.8 sampling), and use the exact task name (`humaneval`, not `human_eval`/`HumanEval`).
+- **CUDA out of memory**: `--load_in_8bit` / `--load_in_4bit`, `--batch_size 1`, `--max_memory_per_gpu "20GiB"`, or `--precision fp16`.
+- **Execution hangs/times out**: `--generation_only --save_generations` on host, then evaluate inside Docker with `--load_generations_path`.
+- **Low scores on instruction models**: use instruction tasks (`--tasks instruct-humaneval`) and set `--instruction_tokens "<s>[INST],</s>,[/INST]"`.
+- **MultiPL-E language failures**: use `ghcr.io/bigcode-project/evaluation-harness-multiple`.
 
 ## Command Reference
 
@@ -395,6 +342,14 @@ docker pull ghcr.io/bigcode-project/evaluation-harness-multiple
 | 7B | 14GB | 6GB | ~30 min (A100) |
 | 13B | 26GB | 10GB | ~1 hour (A100) |
 | 34B | 68GB | 20GB | ~2 hours (A100) |
+
+## Bundled References
+
+Detailed material is split into `references/` to keep this file a lean router:
+
+- [references/benchmarks.md](references/benchmarks.md) — full per-benchmark guide (all task IDs, recommended settings, pass@k formula) for HumanEval, MBPP(+), MultiPL-E, APPS, DS-1000, Mercury, FIM, HumanEvalPack, PAL, CodeXGLUE.
+- [references/custom-tasks.md](references/custom-tasks.md) — authoring and registering a custom benchmark task.
+- [references/issues.md](references/issues.md) — exhaustive troubleshooting (install, memory, execution, result discrepancies, model loading, Docker).
 
 ## Resources
 

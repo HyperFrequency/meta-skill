@@ -1,5 +1,6 @@
 ---
 name: liteparse
+version: 0.1.0
 description: Local document and PDF parsing with spatial text and bounding boxes. Use for extracting text from PDFs, DOCX, Office files, and images; OCR on scans; layout-preserved JSON for RAG; batch-ingesting paper folders; or page screenshots for multimodal agents — even when the user does not name liteparse. Prefer over MarkItDown when you need bboxes, fast local parsing, or PNG page renders; prefer over the pdf skill for merge/split/forms.
 license: Apache-2.0
 allowed-tools: Read Write Edit Bash

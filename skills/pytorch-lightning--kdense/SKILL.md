@@ -1,6 +1,7 @@
 ---
 name: pytorch-lightning--kdense
-description: Deep learning framework (PyTorch Lightning). Organize PyTorch code into LightningModules, configure Trainers for multi-GPU/TPU, implement data pipelines, callbacks, logging (W&B, TensorBoard), distributed training (DDP, FSDP, DeepSpeed), for scalable neural network training.
+version: 0.1.0
+description: Deep learning framework (PyTorch Lightning). Organize PyTorch code into LightningModules, configure Trainers for multi-GPU/TPU, implement data pipelines, callbacks, logging (W&B, TensorBoard), distributed training (DDP, FSDP, DeepSpeed), for scalable neural network training. Use WHEN structuring/training neural nets with the Lightning API and wanting to remove training-loop boilerplate while keeping GPU/TPU scaling. NOT for plain hand-written PyTorch training loops with no Lightning dependency, non-PyTorch frameworks (JAX/Flax, TensorFlow/Keras), classical ML (use scikit-learn), RL training harnesses (use stable-baselines3), or generic experiment tracking unrelated to a Lightning run.
 license: Apache-2.0 license
 metadata:
     skill-author: K-Dense Inc.

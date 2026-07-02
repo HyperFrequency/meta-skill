@@ -1,6 +1,7 @@
 ---
 name: cmux-release
-description: "cmux release workflow, version bumping, changelog updates, pretag guard, release tags, and release asset expectations. Use when preparing or troubleshooting a cmux release."
+version: 0.1.0
+description: "cmux release workflow, version bumping, changelog updates, pretag guard, release tags, and release asset expectations. Use when preparing or troubleshooting a cmux release. Not for other projects; use project-specific release skills instead."
 ---
 
 # cmux Release

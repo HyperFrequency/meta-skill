@@ -1,9 +1,13 @@
 ---
 name: quantum-signing
+version: 0.1.0
 description: |
-  Use when implementing quantum-resistant cryptographic signing.
+  Implement quantum-resistant (post-quantum) cryptographic signing in JavaScript with the
+  agentic-jujutsu QuantumSigner (ML-DSA-65 / NIST FIPS 204) and SHA3-512 fingerprints, for
+  signing/verifying agent operations, audit trails, commits, and learning trajectories.
   Triggers: "quantum signing", "ML-DSA", "post-quantum", "operation signing", "quantum-resistant".
-  NOT for: Standard encryption or non-cryptographic integrity checks.
+  NOT for: standard/classical encryption (RSA, AES, ECDSA), TLS setup, password hashing, or
+  non-cryptographic integrity checks. For agent coordination use agent-coordination instead.
 ---
 
 # Quantum Signing
@@ -118,151 +122,21 @@ const isValid = await jj.verifyOperationFingerprint(
 
 ## Use Cases
 
-### 1. Signed Agent Operations
+End-to-end patterns live in `references/usage-patterns.md`:
 
-```javascript
-// Each agent signs its operations
-const signer = new QuantumSigner();
-const { publicKey, secretKey } = await signer.generateSigningKeypair();
-
-// Register public key with coordination system
-await jj.registerAgent(agentId, agentType, { publicKey });
-
-// Sign each operation
-const operation = {
-  id: 'op-123',
-  agent: agentId,
-  action: 'edit',
-  files: ['src/auth.ts'],
-  timestamp: Date.now()
-};
-
-const signature = await signer.signMessage(
-  JSON.stringify(operation),
-  secretKey
-);
-
-// Include signature in operation record
-await jj.registerAgentOperation(agentId, operation.id, operation.files, {
-  signature
-});
-```
-
-### 2. Verifiable Audit Trail
-
-```javascript
-// Verify operations were not tampered
-const operations = await jj.getAgentOperations(agentId);
-
-for (const op of operations) {
-  const isValid = await signer.verifySignature(
-    JSON.stringify(op.data),
-    op.signature,
-    op.publicKey
-  );
-
-  if (!isValid) {
-    console.error(`Operation ${op.id} signature invalid!`);
-  }
-}
-```
-
-### 3. Commit Signing
-
-```javascript
-// Sign commits for verification
-const commitData = {
-  message: 'feat: add authentication',
-  author: 'agent-001',
-  timestamp: Date.now(),
-  tree: treeHash
-};
-
-const signature = await signer.signMessage(
-  JSON.stringify(commitData),
-  secretKey
-);
-
-await jj.commit({
-  ...commitData,
-  signature
-});
-```
-
-### 4. Learning Trajectory Integrity
-
-```javascript
-// Ensure trajectory data wasn't modified
-const trajectory = await jj.getTrajectory(trajectoryId);
-
-const isValid = await signer.verifySignature(
-  JSON.stringify(trajectory.operations),
-  trajectory.signature,
-  trajectory.agentPublicKey
-);
-```
+1. **Signed agent operations** — sign each op, register the public key with the coordinator.
+2. **Verifiable audit trail** — replay stored ops and reject any with an invalid signature.
+3. **Commit signing** — sign commit metadata for downstream verification.
+4. **Learning trajectory integrity** — confirm trajectory data was not modified before replay/training.
 
 ## Best Practices
 
-### 1. Secure Key Storage
+Details and code in `references/best-practices.md`:
 
-```javascript
-// DO - Store keys securely
-const secretKey = process.env.AGENT_SECRET_KEY;
-
-// DON'T - Hardcode or log keys
-const secretKey = 'ABC123...'; // NEVER DO THIS
-console.log(secretKey);         // NEVER DO THIS
-```
-
-### 2. Key Rotation
-
-```javascript
-// Rotate keys periodically
-async function rotateKeys(agentId) {
-  const { publicKey, secretKey } = await signer.generateSigningKeypair();
-
-  // Update registration
-  await jj.updateAgentKeys(agentId, { publicKey });
-
-  // Securely store new secret key
-  await secureStorage.set(`${agentId}_secret`, secretKey);
-
-  return { publicKey };
-}
-```
-
-### 3. Use Fingerprints for Speed
-
-```javascript
-// For frequent integrity checks, use fingerprints (fast)
-const fingerprint = await jj.generateOperationFingerprint(data);
-
-// Reserve full signatures for important operations
-if (operation.type === 'commit' || operation.type === 'merge') {
-  const signature = await signer.signMessage(data, secretKey);
-}
-```
-
-### 4. Verify Before Trust
-
-```javascript
-// Always verify external operations
-async function processExternalOperation(op) {
-  const isValid = await signer.verifySignature(
-    op.data,
-    op.signature,
-    op.publicKey
-  );
-
-  if (!isValid) {
-    throw new SecurityError('Invalid signature');
-  }
-
-  // Safe to process
-  return process(op);
-}
-```
+1. **Secure key storage** — load secret keys from a secret manager / env; never hardcode or log them.
+2. **Key rotation** — rotate periodically and re-register the new public key.
+3. **Fingerprints for speed** — use SHA3-512 fingerprints for frequent checks; reserve ML-DSA signatures for high-value ops (commits, merges).
+4. **Verify before trust** — always verify external operations before acting on them.
 
 ## Performance
 
@@ -280,6 +154,8 @@ async function processExternalOperation(op) {
 
 ## Related
 
+- `references/usage-patterns.md` - End-to-end signing flows
+- `references/best-practices.md` - Key storage, rotation, verification
 - `/agentic-flow` - Agent coordination commands
 - `agent-coordination` - QuantumDAG patterns
 - `agentsdb-patterns` - Learning with integrity

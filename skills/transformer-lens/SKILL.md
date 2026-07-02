@@ -1,6 +1,6 @@
 ---
-name: transformer-lens-interpretability
-description: Provides guidance for mechanistic interpretability research using TransformerLens to inspect and manipulate transformer internals via HookPoints and activation caching. Use when reverse-engineering model algorithms, studying attention patterns, or performing activation patching experiments.
+name: transformer-lens
+description: Provides guidance for mechanistic interpretability research using TransformerLens to inspect and manipulate transformer internals via HookPoints and activation caching. Use when reverse-engineering model algorithms, studying attention patterns, or performing activation patching/circuit-analysis experiments on GPT-style models. Do not use for training or analyzing Sparse Autoencoders (use SAELens), non-transformer architectures or remote execution on massive models (use nnsight + NDIF), or higher-level causal intervention abstractions (use pyvene).
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -104,143 +104,42 @@ logits, cache = model.run_with_cache(
 | `k, layer` | [batch, pos, head, d_head] | Key vectors |
 | `v, layer` | [batch, pos, head, d_head] | Value vectors |
 
-## Workflow 1: Activation Patching (Causal Tracing)
+## Workflows (full code in references/tutorials.md)
 
-Identify which activations causally affect model output by patching clean activations into corrupted runs.
+The three core experiment workflows live as runnable, step-by-step tutorials in
+[references/tutorials.md](references/tutorials.md). Use the checklists below as the
+mental model; copy the code from the tutorial it points to.
 
-### Step-by-Step
+### Workflow 1: Activation Patching (Causal Tracing) → Tutorial 2
 
-```python
-from transformer_lens import HookedTransformer, patching
-import torch
-
-model = HookedTransformer.from_pretrained("gpt2-small")
-
-# 1. Define clean and corrupted prompts
-clean_prompt = "The Eiffel Tower is in the city of"
-corrupted_prompt = "The Colosseum is in the city of"
-
-clean_tokens = model.to_tokens(clean_prompt)
-corrupted_tokens = model.to_tokens(corrupted_prompt)
-
-# 2. Get clean activations
-_, clean_cache = model.run_with_cache(clean_tokens)
-
-# 3. Define metric (e.g., logit difference)
-paris_token = model.to_single_token(" Paris")
-rome_token = model.to_single_token(" Rome")
-
-def metric(logits):
-    return logits[0, -1, paris_token] - logits[0, -1, rome_token]
-
-# 4. Patch each position and layer
-results = torch.zeros(model.cfg.n_layers, clean_tokens.shape[1])
-
-for layer in range(model.cfg.n_layers):
-    for pos in range(clean_tokens.shape[1]):
-        def patch_hook(activation, hook):
-            activation[0, pos] = clean_cache[hook.name][0, pos]
-            return activation
-
-        patched_logits = model.run_with_hooks(
-            corrupted_tokens,
-            fwd_hooks=[(f"blocks.{layer}.hook_resid_post", patch_hook)]
-        )
-        results[layer, pos] = metric(patched_logits)
-
-# 5. Visualize results (layer x position heatmap)
-```
-
-### Checklist
+Patch clean activations into a corrupted run to find which (layer, position)
+activations causally drive the output.
 - [ ] Define clean and corrupted inputs that differ minimally
-- [ ] Choose metric that captures behavior difference
-- [ ] Cache clean activations
-- [ ] Systematically patch each (layer, position) combination
-- [ ] Visualize results as heatmap
-- [ ] Identify causal hotspots
+- [ ] Choose a metric that captures the behavior difference (e.g. logit diff)
+- [ ] Cache clean activations with `run_with_cache`
+- [ ] Systematically patch each (layer, position) via `run_with_hooks`
+- [ ] Visualize as a layer×position heatmap; identify causal hotspots
 
-## Workflow 2: Circuit Analysis (Indirect Object Identification)
+### Workflow 2: Circuit Analysis / IOI → Tutorial 3 (Direct Logit Attribution)
 
-Replicate the IOI circuit discovery from "Interpretability in the Wild".
-
-### Step-by-Step
-
-```python
-from transformer_lens import HookedTransformer
-import torch
-
-model = HookedTransformer.from_pretrained("gpt2-small")
-
-# IOI task: "When John and Mary went to the store, Mary gave a bottle to"
-# Model should predict "John" (indirect object)
-
-prompt = "When John and Mary went to the store, Mary gave a bottle to"
-tokens = model.to_tokens(prompt)
-
-# 1. Get baseline logits
-logits, cache = model.run_with_cache(tokens)
-
-john_token = model.to_single_token(" John")
-mary_token = model.to_single_token(" Mary")
-
-# 2. Compute logit difference (IO - S)
-logit_diff = logits[0, -1, john_token] - logits[0, -1, mary_token]
-print(f"Logit difference: {logit_diff.item():.3f}")
-
-# 3. Direct logit attribution by head
-def get_head_contribution(layer, head):
-    # Project head output to logits
-    head_out = cache["z", layer][0, :, head, :]  # [pos, d_head]
-    W_O = model.W_O[layer, head]  # [d_head, d_model]
-    W_U = model.W_U  # [d_model, vocab]
-
-    # Head contribution to logits at final position
-    contribution = head_out[-1] @ W_O @ W_U
-    return contribution[john_token] - contribution[mary_token]
-
-# 4. Map all heads
-head_contributions = torch.zeros(model.cfg.n_layers, model.cfg.n_heads)
-for layer in range(model.cfg.n_layers):
-    for head in range(model.cfg.n_heads):
-        head_contributions[layer, head] = get_head_contribution(layer, head)
-
-# 5. Identify top contributing heads (name movers, backup name movers)
-```
-
-### Checklist
-- [ ] Set up task with clear IO/S tokens
-- [ ] Compute baseline logit difference
-- [ ] Decompose by attention head contributions
-- [ ] Identify key circuit components (name movers, S-inhibition, induction)
+Replicate the IOI circuit from "Interpretability in the Wild": decompose the
+IO−S logit difference into per-head contributions via `W_O @ W_U`.
+- [ ] Set up the task with clear IO / S tokens
+- [ ] Compute the baseline logit difference
+- [ ] Decompose by attention-head contribution (direct logit attribution)
+- [ ] Identify key components (name movers, S-inhibition, induction heads)
 - [ ] Validate with ablation experiments
 
-## Workflow 3: Induction Head Detection
+### Workflow 3: Induction Head Detection → Tutorial 4
 
-Find induction heads that implement [A][B]...[A] → [B] pattern.
+Find heads implementing the `[A][B]...[A] → [B]` pattern by scoring attention
+from repeated positions back to the token after the first occurrence.
+- [ ] Build a repeated-token sequence
+- [ ] Score `cache["pattern", layer]` at the induction offset
+- [ ] Rank heads; high scorers are induction heads
 
-```python
-from transformer_lens import HookedTransformer
-import torch
-
-model = HookedTransformer.from_pretrained("gpt2-small")
-
-# Create repeated sequence: [A][B][A] should predict [B]
-repeated_tokens = torch.tensor([[1000, 2000, 1000]])  # Arbitrary tokens
-
-_, cache = model.run_with_cache(repeated_tokens)
-
-# Induction heads attend from final [A] back to first [B]
-# Check attention from position 2 to position 1
-induction_scores = torch.zeros(model.cfg.n_layers, model.cfg.n_heads)
-
-for layer in range(model.cfg.n_layers):
-    pattern = cache["pattern", layer][0]  # [head, q_pos, k_pos]
-    # Attention from pos 2 to pos 1
-    induction_scores[layer] = pattern[:, 2, 1]
-
-# Heads with high scores are induction heads
-top_heads = torch.topk(induction_scores.flatten(), k=5)
-```
+Additional tutorials in that file: basic activation analysis (1), logit lens (5),
+and activation-addition steering (6).
 
 ## Common Issues & Solutions
 

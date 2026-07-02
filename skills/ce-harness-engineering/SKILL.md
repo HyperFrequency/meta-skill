@@ -1,6 +1,7 @@
 ---
-name: harness-engineering
-description: "This skill should be used when designing autonomous agent harnesses: research loops, evaluation scaffolds, locked and editable surfaces, durable logs, novelty gates, pruning, rollback, PR preparation, and human approval boundaries."
+name: ce-harness-engineering
+version: 1.1.1
+description: "Design and harden the control system around autonomous agents: locked vs editable vs append-only vs human-controlled surfaces, tight feedback loops, durable state and thread logs, novelty and pruning gates, rollback, PR preparation, and human approval boundaries. Use when building autonomous research/experimentation loops, background or PR-producing agents, or judging whether an agent can run unattended without gaming metrics, weakening rubrics, or losing state across compaction. NOT for: generic quality gates, regression suites, or outcome metrics without autonomous control surfaces (use ce-evaluation); tool schemas, response formats, and recovery errors (use ce-tool-design); project-level task-model fit, pipeline shape, and cost planning (use ce-project-development); remote sandbox, warm-pool, or hosted session infrastructure (use ce-hosted-agents)."
 ---
 
 # Harness Engineering
@@ -19,10 +20,10 @@ Activate this skill when:
 - Preventing agents from gaming benchmarks, weakening rubrics, or losing state across compaction
 
 Do not activate this skill for adjacent work owned by other skills:
-- General quality gates, regression suites, or outcome metrics without autonomous control surfaces: `evaluation`.
-- Tool schemas, response formats, and recovery errors for harness tools: `tool-design`.
-- Project-level task-model fit, pipeline shape, and cost planning: `project-development`.
-- Remote sandbox, warm-pool, and hosted session infrastructure: `hosted-agents`.
+- General quality gates, regression suites, or outcome metrics without autonomous control surfaces: `ce-evaluation`.
+- Tool schemas, response formats, and recovery errors for harness tools: `ce-tool-design`.
+- Project-level task-model fit, pipeline shape, and cost planning: `ce-project-development`.
+- Remote sandbox, warm-pool, and hosted session infrastructure: `ce-hosted-agents`.
 
 ## Core Concepts
 
@@ -203,20 +204,15 @@ An agent prepares a branch and PR body after passing source, skill, and structur
 
 This skill connects to:
 
-- evaluation - Rubrics and quality gates provide the locked feedback surface
-- advanced-evaluation - Pairwise comparison and bias mitigation improve proposal review
-- filesystem-context - Durable logs, scratchpads, and thread files preserve state
-- multi-agent-patterns - Researcher, verifier, monitor, and writer agents need isolated contexts
-- tool-design - Harness tools must expose clear contracts and recovery errors
-- project-development - File-based pipelines and task-model fit analysis keep loops simple
-- hosted-agents - Background execution needs sandbox, snapshot, and approval boundaries
+- ce-evaluation - Rubrics and quality gates provide the locked feedback surface
+- ce-advanced-evaluation - Pairwise comparison and bias mitigation improve proposal review
+- ce-filesystem-context - Durable logs, scratchpads, and thread files preserve state
+- ce-multi-agent-patterns - Researcher, verifier, monitor, and writer agents need isolated contexts
+- ce-tool-design - Harness tools must expose clear contracts and recovery errors
+- ce-project-development - File-based pipelines and task-model fit analysis keep loops simple
+- ce-hosted-agents - Background execution needs sandbox, snapshot, and approval boundaries
 
 ## References
-
-Internal references:
-- `researcher/README.md` - Read when implementing the repo-native research-to-skill operating system
-- `researcher/rubrics/harness-change.md` - Read when evaluating changes to an agent harness
-- `researcher/runbooks/autonomous-research-loop.md` - Read when running a source-to-skill loop
 
 External resources:
 - Karpathy `autoresearch` - Constrained autonomous experiment loop with locked evaluation
@@ -229,6 +225,6 @@ External resources:
 ## Skill Metadata
 
 **Created**: 2026-05-14
-**Last Updated**: 2026-05-15
+**Last Updated**: 2026-06-28
 **Author**: Agent Skills for Context Engineering Contributors
-**Version**: 1.1.0
+**Version**: 1.1.1

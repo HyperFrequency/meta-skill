@@ -1,9 +1,16 @@
 ---
 id: rust-error-handling
-name: Rust Error Handling
+name: rust-error-handling
+version: 0.1.0
 description: >-
-  Rust-specific error handling patterns, building on the base error handling
-  skill. Demonstrates the 'extends' composition feature.
+  Rust-specific error handling patterns (thiserror, anyhow, the ? operator,
+  the std::error::Error trait), building on the base error handling skill and
+  demonstrating the 'extends' composition feature. Use WHEN writing or reviewing
+  Rust code that defines custom error types, propagates errors across library or
+  application boundaries, or decides between Result and panic. Do NOT use for
+  non-Rust languages, for general (language-agnostic) error-handling principles
+  (use error-handling-base instead), or for Rust topics unrelated to error
+  handling such as async, lifetimes, or performance tuning.
 tags: [error-handling, rust, example]
 extends: error-handling-base
 ---

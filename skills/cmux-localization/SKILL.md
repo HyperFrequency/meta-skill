@@ -1,6 +1,7 @@
 ---
 name: cmux-localization
-description: "Localization rules and audit workflow for cmux UI strings, settings rows, menus, shortcuts, schema/config text, docs, command/help text, alerts, tooltips, and web messages. Use whenever changing user-facing text."
+version: 0.1.0
+description: "Localization rules and audit workflow for cmux UI strings, settings rows, menus, shortcuts, schema/config text, docs, command/help text, alerts, tooltips, and web messages. Use whenever changing user-facing text. Not for general code refactoring or feature work unrelated to user-facing strings."
 ---
 
 # cmux Localization

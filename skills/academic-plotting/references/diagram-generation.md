@@ -392,3 +392,155 @@ graph LR
 ```
 
 Validate the structure is correct, then write the full Gemini prompt.
+
+---
+
+## Visual Style Library (A/B/C/D)
+
+Pick ONE style per paper — all figures should be consistent. Paste the full block as
+Section 2 of the prompt, then expand with materiality detail (see Section 2 guidance above).
+
+### Style A: "Sketch / 简笔画" (Hand-Drawn)
+
+Warm, approachable, memorable. Ideal for overview figures and system introductions. Looks
+like a whiteboard sketch refined by a designer.
+
+```
+VISUAL STYLE — HAND-DRAWN SKETCH:
+- Slightly irregular, hand-drawn line quality — lines wobble gently, not perfectly straight
+- Rounded, soft shapes with visible pen strokes (like drawn with a thick felt-tip marker)
+- Warm off-white background (#FAFAF7), NOT pure white
+- Fill colors are soft watercolor-like washes: muted blue (#D6E4F0), soft peach (#F5DEB3),
+  light sage (#D4E6D4), pale lavender (#E6DFF0)
+- Borders are dark charcoal (#2C2C2C) with 2-3px line weight, slightly uneven
+- Arrows are hand-drawn with slight curves, ending in simple open arrowheads (not filled triangles)
+- Text uses a rounded sans-serif font (like Comic Neue or Architects Daughter feel)
+- Small doodle-style icons inside boxes: a tiny gear ⚙ for processing, a lightbulb 💡 for ideas,
+  a magnifying glass 🔍 for search — rendered as simple line drawings, NOT emoji
+- Overall feel: a carefully drawn whiteboard diagram, clean but with personality
+- NO clip art, NO stock icons, NO photorealistic elements
+```
+
+### Style B: "Modern Minimal" (Clean & Bold)
+
+Confident, authoritative. Best for method figures where precision matters.
+
+```
+VISUAL STYLE — MODERN MINIMAL:
+- Ultra-clean geometric shapes with crisp edges
+- Bold color blocks as backgrounds for sections — NOT just accent bars, but full section fills
+  using desaturated tones: slate blue (#E8EDF2), warm sand (#F5F0E8), cool mint (#E8F2EE)
+- Component boxes have ROUNDED CORNERS (12px radius), NO visible border — they float on
+  the section background using subtle shadow (1px, 4px blur, rgba(0,0,0,0.06))
+- ONE accent color per section used sparingly on key elements: Deep blue (#2563EB),
+  Emerald (#059669), Amber (#D97706), Rose (#E11D48)
+- Arrows are thin (1.5px), dark gray (#6B7280), with small filled circle at source
+  and clean arrowhead at target — NOT thick colored arrows
+- Typography: Inter or system sans-serif, title 600 weight, body 400 weight
+- Labels INSIDE boxes, not beside them
+- Generous whitespace — at least 24px between elements
+- NO decorative elements, NO icons — let the structure speak
+```
+
+### Style C: "Illustrated Technical" (Icon-Rich)
+
+Engaging, explanatory. Good for tutorial-style papers and figures that need to be self-explanatory.
+
+```
+VISUAL STYLE — ILLUSTRATED TECHNICAL:
+- Each major component has a small MEANINGFUL ICON drawn in a consistent line-art style
+  (single color, 2px stroke, ~24x24px): brain icon for reasoning, database cylinder for storage,
+  arrow-loop for iteration, network nodes for communication
+- Components sit inside soft rounded rectangles with a LEFT COLOR STRIP (4px wide)
+- Background is pure white, but each logical group has a very faint colored region behind it
+  (#F8FAFC for blue group, #FFF8F0 for orange group)
+- Connections use CURVED bezier paths (not straight lines), colored by SOURCE component
+- Key data flows are THICKER (3px) than secondary flows (1px, dashed)
+- Small annotation badges on arrows: "×N" for repeated operations, "optional" in italics
+- Title labels are ABOVE each section in small caps, letter-spaced
+- Overall: like a well-designed API documentation diagram
+```
+
+### Style D: "Accent Bar" (Classic Academic)
+
+The default academic style. Safe for any venue, works well in grayscale.
+
+```
+VISUAL STYLE — CLASSIC ACCENT BAR:
+- Horizontal section bands stacked vertically, pale gray (#F7F7F5) fill
+- Thick colored LEFT ACCENT BAR (8px) distinguishes each section
+- Content boxes: white fill, thin #DDD border, 4px rounded corners
+- Section palette: Blue #4A90D9, Teal #5BA58B, Amber #D4A252, Slate #7B8794
+- Sans-serif typography (Helvetica/Arial), bold titles, regular body
+- Colored arrows match their SOURCE section
+- Clean, flat, zero decoration
+```
+
+---
+
+## Generation Script Template
+
+```python
+#!/usr/bin/env python3
+"""Generate [FIGURE_NAME] diagram using Gemini image generation."""
+import os, sys, time
+from google import genai
+
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if not API_KEY:
+    print("ERROR: Set GEMINI_API_KEY environment variable.")
+    print("  Get a key at: https://aistudio.google.com/apikey")
+    sys.exit(1)
+
+MODEL = "gemini-3-pro-image-preview"
+OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+client = genai.Client(api_key=API_KEY)
+
+PROMPT = """
+[PASTE YOUR 6-SECTION PROMPT HERE]
+"""
+
+def generate_image(prompt_text, attempt_num):
+    print(f"\n{'='*60}\nAttempt {attempt_num}\n{'='*60}")
+    try:
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt_text,
+            config=genai.types.GenerateContentConfig(
+                response_modalities=["IMAGE", "TEXT"],
+            ),
+        )
+        output_path = os.path.join(OUTPUT_DIR, f"fig_NAME_attempt{attempt_num}.png")
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                with open(output_path, "wb") as f:
+                    f.write(part.inline_data.data)
+                print(f"Saved: {output_path} ({os.path.getsize(output_path):,} bytes)")
+                return output_path
+            elif part.text:
+                print(f"Text: {part.text[:300]}")
+        print("WARNING: No image in response")
+        return None
+    except Exception as e:
+        print(f"ERROR: {e}")
+        return None
+
+def main():
+    results = []
+    for i in range(1, 4):
+        if i > 1:
+            time.sleep(2)
+        path = generate_image(PROMPT, i)
+        if path:
+            results.append(path)
+    if not results:
+        print("All attempts failed!")
+        sys.exit(1)
+    print(f"\nGenerated {len(results)} attempts. Review and pick the best.")
+
+if __name__ == "__main__":
+    main()
+```
+
+**Key rules**: always 3 attempts (quality varies); style block is mandatory; never
+hardcode API keys; save scripts for reproducibility; spell out every label exactly.

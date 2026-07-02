@@ -1,6 +1,6 @@
 ---
 name: prompt-guard
-description: Meta's 86M prompt injection and jailbreak detector. Filters malicious prompts and third-party data for LLM apps. 99%+ TPR, <1% FPR. Fast (<2ms GPU). Multilingual (8 languages). Deploy with HuggingFace or batch processing for RAG security.
+description: Meta's 86M prompt injection and jailbreak detector. Filters malicious prompts and third-party data for LLM apps. 99%+ TPR, <1% FPR. Fast (<2ms GPU). Multilingual (8 languages). Deploy with HuggingFace or batch processing for RAG security. Not for general content moderation (violence, hate speech)—use LlamaGuard for that.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

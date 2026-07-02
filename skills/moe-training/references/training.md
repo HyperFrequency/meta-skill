@@ -303,6 +303,28 @@ else:
 
 **Rule**: If load imbalance persists, increase coefficient
 
+### Expert Count Selection
+
+More experts = more capacity, but with diminishing returns and higher overfitting risk on small datasets. Match expert count to data diversity:
+
+- **Small models (1B-7B)**: 8-16 experts
+- **Medium models (7B-30B)**: 8-64 experts
+- **Large models (30B+)**: 64-256 experts
+
+Example — Mixtral 8x7B: 47B total params (8 experts), 13B active (top-2), i.e. 47B capacity at 13B compute.
+
+### Per-Group Learning Rate
+
+MoE (router + expert) params often benefit from a lower LR than the dense backbone. Use separate optimizer parameter groups instead of a single global LR:
+
+```python
+# Lower LR for MoE params, standard LR for the rest
+optimizer = torch.optim.Adam([
+    {'params': model.non_moe_params, 'lr': 6e-4},
+    {'params': model.moe_params,     'lr': 1e-4},
+])
+```
+
 ## Production Training
 
 ### Performance Benchmarks

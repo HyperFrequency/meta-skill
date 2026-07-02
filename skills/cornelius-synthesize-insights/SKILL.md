@@ -1,6 +1,7 @@
 ---
-name: synthesize-insights
-description: Combine multiple insights into coherent narrative
+name: cornelius-synthesize-insights
+version: 0.1.1
+description: Combine multiple permanent notes or insights into a coherent narrative, framework, or argument, surfacing non-obvious patterns, cross-domain connections, tensions, and emergent understanding across disparate ideas. Use when the user wants to merge 5-10+ notes into an article foundation, build a framework from scattered ideas, discover bridges between domains (e.g. Buddhism and AI), or plan content from a topic cluster — triggers like "synthesize these notes", "what connects X and Y", "turn my notes on Z into a framework", "what can I write from my notes about". Do NOT use to find related notes without combining them (use cornelius-find-connections), to retrieve or search notes (use /recall or Local Brain Search), or to draft a finished article — this skill produces the synthesis foundation, not the final piece.
 ---
 
 # Synthesize Insights

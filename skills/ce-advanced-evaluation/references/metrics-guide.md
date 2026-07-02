@@ -2,6 +2,19 @@
 
 This reference provides guidance on selecting appropriate metrics for different evaluation scenarios.
 
+## Quick Selection by Task Structure
+
+Match metrics to the evaluation task structure:
+
+| Task Type | Primary Metrics | Secondary Metrics |
+|-----------|-----------------|-------------------|
+| Binary classification (pass/fail) | Recall, Precision, F1 | Cohen's kappa |
+| Ordinal scale (1-5 rating) | Spearman's rho, Kendall's tau | Cohen's kappa (weighted) |
+| Pairwise preference | Agreement rate, Position consistency | Confidence calibration |
+| Multi-label | Macro-F1, Micro-F1 | Per-label precision/recall |
+
+Prioritize systematic disagreement patterns over absolute agreement rates: a judge that consistently disagrees with humans on specific criteria is more problematic than one with random noise.
+
 ## Metric Categories
 
 ### Classification Metrics

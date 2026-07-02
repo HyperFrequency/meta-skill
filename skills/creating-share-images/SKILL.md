@@ -1,10 +1,12 @@
 ---
 name: creating-share-images
+version: 0.1.0
 description: >-
   Create OpenGraph and Twitter share images for Next.js applications using
   next/og ImageResponse. Generates dynamic social preview cards with gradients,
   SVG icons, and proper dimensions. Use when building OG images, Twitter cards,
-  social previews, meta images, or share images for webapps.
+  social previews, meta images, or share images for webapps. Not for static
+  images, non-Next.js frameworks, or manual image design tools.
 ---
 
 # Creating Share Images for Next.js

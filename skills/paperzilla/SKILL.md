@@ -1,5 +1,6 @@
 ---
 name: paperzilla
+version: 0.1.0
 description: Chat with your agent about projects, recommendations, and canonical papers in Paperzilla. Use when users ask for recent project recommendations, canonical paper details, markdown-based summaries, recommendation feedback, feed export, or Atom feed URLs.
 license: MIT
 metadata: {"version": "1.0", "skill-author": "Paperzilla Inc"}

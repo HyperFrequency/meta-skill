@@ -38,12 +38,13 @@ trtllm-serve meta-llama/Meta-Llama-3-70B \
 
 ```python
 from tensorrt_llm import LLM
+from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
 
 class LLMService:
     def __init__(self):
         self.llm = LLM(
             model="meta-llama/Meta-Llama-3-8B",
-            dtype="fp8"
+            quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
         )
 
     def generate(self, prompt, max_tokens=100):
@@ -254,7 +255,7 @@ spec:
           - trtllm-serve
           - meta-llama/Meta-Llama-3-70B
           - --tp_size=4
-          - --dtype=fp8
+          - --kv_cache_dtype=fp8
           - --max_batch_size=256
           - --enable_metrics
         ports:

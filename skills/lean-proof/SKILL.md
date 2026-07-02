@@ -1,6 +1,7 @@
 ---
 name: lean-proof
-description: Use when asked to prove something in Lean. Covers one-step-at-a-time proving, error priority, working on the hardest case first, proof cleanup, and handling dependent type rewriting issues.
+version: 0.1.1
+description: Use when asked to prove something in Lean 4 / Mathlib — closing goals, discharging `sorry`s, fixing proof errors, or cleaning up a working proof. Covers one-step-at-a-time proving, error priority ordering, working on the hardest case first, proof cleanup, and handling dependent-type ("motive is not type correct") rewriting issues. NOT for installing or configuring a Lean toolchain (use lean-setup), reducing a failure to a minimal working example (use lean-mwe), bisecting which commit broke a proof (use lean-bisect), opening or reviewing pull requests (use lean-pr, mathlib-pr, mathlib-review), or building/CI-testing Mathlib (use mathlib-build, nightly-testing).
 ---
 
 # Lean Proof Methodology

@@ -1,6 +1,7 @@
 ---
 name: neuro-harness
-description: Reference + invocation guide for the unified mcp2cli gateway that fronts every MCP endpoint in the neuro-quant compose stack. Use this skill when the user types `/forge`, asks "what MCP servers do we have", needs to call a tool through the unified CLI, wants the endpoint URL for InfraNodus/TurboVault/GitNexus/tree-sitter/etc., or asks how docs-lookup / LSPs / language tooling are wired in. All MCP traffic in this environment goes through the gateway — never call upstream services directly when a gateway route exists.
+version: 0.1.0
+description: Reference + invocation guide for the unified mcp2cli gateway that fronts every MCP endpoint in the neuro-quant compose stack. Use this skill when the user types `/forge`, asks "what MCP servers do we have", needs to call a tool through the unified CLI, wants the endpoint URL for InfraNodus/TurboVault/GitNexus/tree-sitter/etc., or asks how docs-lookup / LSPs / language tooling are wired in. All MCP traffic in this environment goes through the gateway — never call upstream services directly when a gateway route exists. Not for task-specific workflows; use wrapper skills like docs-dual-lookup, infranodus-cli, gitnexus-*, tree-sitter, or turbovault instead.
 allowed-tools: Read, Bash, Skill
 ---
 

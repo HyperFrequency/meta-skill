@@ -1,6 +1,7 @@
 ---
 name: kalman-filter
-description: Linear and Extended Kalman filtering for online state estimation on time-series. Use for pairs-trading hedge-ratio tracking, online mean / drift estimation, smoothing a noisy mid-price, or fusing multiple price feeds. Prefer filterpy (rlabbe/filterpy) — actively maintained, full EKF/UKF/IMM stack. pykalman is canonical but stale; only reach for it when you need its EM parameter-learning loop on a linear model.
+version: 0.1.0
+description: Linear and Extended Kalman filtering for online state estimation on time-series. Use for pairs-trading hedge-ratio tracking, online mean / drift estimation, smoothing a noisy mid-price, or fusing multiple price feeds. Prefer filterpy (rlabbe/filterpy) — actively maintained, full EKF/UKF/IMM stack. pykalman is canonical but stale; only reach for it when you need its EM parameter-learning loop on a linear model. Not for Bayesian hierarchical models or non-Gaussian posteriors; use PyMC or particle filters instead.
 allowed-tools: Read, Write, Edit, Bash
 license: MIT
 metadata:

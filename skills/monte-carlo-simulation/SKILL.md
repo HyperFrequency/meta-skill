@@ -1,6 +1,7 @@
 ---
 name: monte-carlo-simulation
-description: Monte Carlo simulation for asset-price paths and portfolio risk metrics. Use when you need to project distributions of terminal wealth, compute path-dependent option payoffs, stress-test portfolios, or estimate VaR / CVaR by simulation. Covers parametric Geometric Brownian Motion, bootstrap (historical resampling), and block-bootstrap for serial-dependent returns. Library-agnostic — numpy + scipy as the base, with optional pyfolio for tearsheet summarization. For copula-based multi-asset joint sampling see copula-dependency; for closed-form VaR see value-at-risk.
+version: 0.1.0
+description: Monte Carlo simulation for asset-price paths and portfolio risk metrics. Use when you need to project distributions of terminal wealth, compute path-dependent option payoffs, stress-test portfolios, or estimate VaR / CVaR by simulation. Covers parametric Geometric Brownian Motion, bootstrap (historical resampling), and block-bootstrap for serial-dependent returns. Library-agnostic — numpy + scipy as the base, with optional pyfolio for tearsheet summarization. For copula-based multi-asset joint sampling see copula-dependency; for closed-form VaR see value-at-risk. NOT for problems with analytic closed-form solutions (Black-Scholes, parametric VaR under joint normality) or IID bootstrap on serially-correlated data—use block bootstrap instead.
 allowed-tools: Bash, Read, Edit, Write
 license: BSD-3 (numpy/scipy)
 metadata:

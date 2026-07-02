@@ -1,6 +1,7 @@
 ---
 name: xgboost
-description: XGBoost gradient-boosted decision trees for tabular price-direction classification and return regression. Use when the user asks to "train an XGBoost model", "predict direction with XGBoost", "boost trees on OHLCV features", "use XGBClassifier / XGBRegressor", or wants a battle-tested baseline before reaching for deep learning. Covers the scikit-learn estimator API, native categorical support (`enable_categorical=True`), GPU training (`device="cuda"`), early stopping, and Optuna tuning.
+version: 0.1.0
+description: XGBoost gradient-boosted decision trees for tabular price-direction classification and return regression. Use when the user asks to "train an XGBoost model", "predict direction with XGBoost", "boost trees on OHLCV features", "use XGBClassifier / XGBRegressor", or wants a battle-tested baseline before reaching for deep learning. Covers the scikit-learn estimator API, native categorical support (`enable_categorical=True`), GPU training (`device="cuda"`), early stopping, and Optuna tuning. Not for deep learning models; prefer LightGBM if training speed dominates with many features, or CatBoost for heavy categorical/time-series data.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: Apache-2.0
 metadata:

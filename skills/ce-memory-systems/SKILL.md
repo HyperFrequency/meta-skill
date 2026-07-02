@@ -1,11 +1,15 @@
 ---
-name: memory-systems
+name: ce-memory-systems
+version: 0.1.0
 description: >
   This skill should be used for persistent semantic memory in agent systems:
   cross-session knowledge retention, entity tracking, temporal validity,
   graph or vector retrieval, memory consolidation, and memory benchmark selection.
   Route file-backed scratchpads to filesystem-context, handoff summaries to
   context-compression, and token-efficiency tactics to context-optimization.
+  Not for file-backed scratchpads, session compression, active-trajectory optimization,
+  or formal mental states — see filesystem-context, context-compression,
+  context-optimization, or bdi-mental-states respectively.
 ---
 
 # Memory System Design

@@ -82,11 +82,9 @@ outputs = llm.generate(
 **Performance Gain**: 12-18% throughput improvement
 
 ```python
-# vLLM automatically uses fused kernels when available
-llm = LLM(
-    model="mistralai/Mixtral-8x7B-v0.1",
-    use_v2_block_manager=True  # Enable fused MoE kernels
-)
+# vLLM selects fused MoE kernels automatically for supported MoE models
+# (e.g. Mixtral). There is no flag to enable them — just load the model.
+llm = LLM(model="mistralai/Mixtral-8x7B-v0.1")
 ```
 
 **What it does**:

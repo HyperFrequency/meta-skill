@@ -1,6 +1,7 @@
 ---
 name: deep-q-learning
-description: Deep Q-Network (DQN) — value-based deep RL for environments with discrete action spaces, using `stable-baselines3`. Use when the state space is continuous or high-dimensional (price tensors, order-book snapshots, indicator vectors) but the action space is small and discrete (e.g., {flat, long, short} or {sell, hold, buy}). This skill is the DQN-specific deep dive; for general SB3 use (algorithm selection, callbacks, vectorized envs, custom envs), see the existing `stable-baselines3` skill in `k-dense-scientific-agent-skills/`.
+version: 0.1.0
+description: Deep Q-Network (DQN) — value-based deep RL for environments with discrete action spaces, using `stable-baselines3`. Use when the state space is continuous or high-dimensional (price tensors, order-book snapshots, indicator vectors) but the action space is small and discrete (e.g., {flat, long, short} or {sell, hold, buy}). This skill is the DQN-specific deep dive; for general SB3 use (algorithm selection, callbacks, vectorized envs, custom envs), see the existing `stable-baselines3` skill in `k-dense-scientific-agent-skills/`. Do not use for continuous actions (→ SAC/TD3) or extremely sparse rewards (→ HER); for algorithm selection matrix, see `stable-baselines3` skill.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: MIT
 metadata:

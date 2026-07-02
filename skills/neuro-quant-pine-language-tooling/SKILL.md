@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-pine-language-tooling
+version: 0.1.0
 description: >
   Routes Pine Script v6 TOOLING work: validating, parsing, fixing, or
   documenting Pine with the local `pinelsp` toolchain (parser, language

@@ -1,6 +1,7 @@
 ---
-name: bdi-mental-states
-description: "This skill should be used when modeling agent mental states with BDI concepts: beliefs, desires, intentions, RDF-to-belief transformations, rational agency traces, cognitive agents, BDI ontologies, and neuro-symbolic AI integration."
+name: ce-bdi-mental-states
+version: 0.1.0
+description: "This skill should be used when modeling agent mental states with BDI concepts: beliefs, desires, intentions, RDF-to-belief transformations, rational agency traces, cognitive agents, BDI ontologies, and neuro-symbolic AI integration. Do not use for persistent entity memory without formal BDI semantics (use memory-systems), agent topology or coordination (use multi-agent-patterns), or evaluation rubrics (use evaluation)."
 ---
 
 # BDI Mental State Modeling

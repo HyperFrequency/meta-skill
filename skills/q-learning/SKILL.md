@@ -1,5 +1,6 @@
 ---
 name: q-learning
+version: 0.1.0
 description: Tabular Q-learning — the canonical off-policy temporal-difference control algorithm. Standalone NumPy implementation, no library required. Use when the state and action spaces are both small and discrete (e.g., 3-position trading {flat, long, short} over a discretized signal bucket), when you want a transparent baseline before reaching for DQN, or when you need a pedagogical reference for the Bellman update. For continuous or high-cardinality state spaces, switch to the `deep-q-learning` skill.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: MIT

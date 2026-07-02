@@ -1,6 +1,6 @@
 ---
-name: nnsight-remote-interpretability
-description: Provides guidance for interpreting and manipulating neural network internals using nnsight with optional NDIF remote execution. Use when needing to run interpretability experiments on massive models (70B+) without local GPU resources, or when working with any PyTorch architecture.
+name: nnsight
+description: Provides guidance for interpreting and manipulating neural network internals using nnsight with optional NDIF remote execution. Use when needing to run interpretability experiments on massive models (70B+) without local GPU resources, or when working with any PyTorch architecture. Not for consistent APIs across models (use TransformerLens) or shareable declarative interventions (use pyvene).
 version: 1.0.0
 author: Orchestra Research
 license: MIT

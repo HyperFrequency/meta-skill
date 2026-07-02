@@ -1,6 +1,7 @@
 ---
 name: lean-bisect
-description: Bisect Lean toolchain versions to find where behavior changes. Use when trying to identify which Lean 4 commit caused a regression or behavior change.
+version: 0.1.0
+description: Bisect Lean 4 toolchain versions (nightlies or commits) with the lean4 repo's script/lean-bisect to pinpoint which commit changed a test file's behavior. Use when identifying which Lean 4 commit caused a regression, a fixed bug, or any pass/fail or message change between two toolchain points. Do NOT use for Mathlib-dependent test cases directly (Mathlib is pinned per-toolchain and fails on most versions tested — minimize to a standalone, import-free file first via the lean-mwe skill), for non-minimal or slow test files (each bisection step recompiles the whole test), or when the two endpoints do not already show different behavior.
 ---
 
 # Bisecting Lean Toolchains

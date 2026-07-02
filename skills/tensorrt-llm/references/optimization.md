@@ -14,12 +14,12 @@ Comprehensive guide to optimizing LLM inference with TensorRT-LLM.
 **Usage**:
 ```python
 from tensorrt_llm import LLM
+from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
 
-# Automatic FP8 quantization
+# FP8 quantization (set via quant_config, not a dtype= kwarg)
 llm = LLM(
     model="meta-llama/Meta-Llama-3-70B",
-    dtype="fp8",
-    quantization="fp8"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.FP8)
 )
 ```
 
@@ -37,18 +37,19 @@ llm = LLM(
 
 **Usage**:
 ```python
+from tensorrt_llm import LLM
+from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
+
 # INT4 with AWQ calibration
 llm = LLM(
     model="meta-llama/Meta-Llama-3-405B",
-    dtype="int4_awq",
-    quantization="awq"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.W4A16_AWQ)
 )
 
 # INT4 with GPTQ calibration
 llm = LLM(
     model="meta-llama/Meta-Llama-3-405B",
-    dtype="int4_gptq",
-    quantization="gptq"
+    quant_config=QuantConfig(quant_algo=QuantAlgo.W4A16_GPTQ)
 )
 ```
 
@@ -182,7 +183,8 @@ trtllm-serve meta-llama/Meta-Llama-3-8B \
 
 2. **Enable FP8** (if H100):
    ```python
-   llm = LLM(model="...", dtype="fp8")
+   from tensorrt_llm.llmapi import QuantConfig, QuantAlgo
+   llm = LLM(model="...", quant_config=QuantConfig(quant_algo=QuantAlgo.FP8))
    ```
 
 3. **Tune batch size**:

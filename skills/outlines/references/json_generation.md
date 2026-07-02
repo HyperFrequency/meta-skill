@@ -2,6 +2,12 @@
 
 Complete guide to JSON generation with Outlines using Pydantic models and JSON schemas.
 
+> API version: examples use the pre-1.0 (v0) API. On `outlines>=1.0`, replace
+> `model = outlines.models.transformers(id)` with
+> `outlines.from_transformers(hf_model, hf_tokenizer)`, and
+> `outlines.generate.json(model, Schema)(prompt)` with
+> `model(prompt, output_type=Schema)` → `Schema.model_validate_json(result)`.
+
 ## Table of Contents
 - Pydantic Models
 - JSON Schema Support

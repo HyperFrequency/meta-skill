@@ -1,6 +1,7 @@
 ---
 name: opik
-description: Opik observability for LLM agents — Prompt Library, Local Runner (opik connect), Test Suites, threads, integrations. Use for "manage my prompts", "connect my agent", "evaluate my agent" or "integrate with Opik".
+version: 0.1.0
+description: Opik observability for LLM agents — tracing, Prompt Library, Local Runner (opik connect), Test Suites & evaluation, threads, integrations. Use for "manage my prompts", "connect my agent", "evaluate my agent", "trace my LLM calls", or "integrate with Opik". NOT for general-purpose APM/infra monitoring (use a standard APM), classic non-LLM ML experiment tracking (use Comet ML or MLflow), or building the agent logic itself — Opik only observes and evaluates LLM traces/spans.
 ---
 
 # Opik — Observability for LLM Agents
@@ -12,74 +13,20 @@ Integrating with Opik always means adding both components unless the user explic
 
 ## Setup
 
-### Environment Config Decision Tree
+**Pick the config mechanism before editing anything.** Inspect the project's existing
+approach first and never introduce a second one: if it already loads `.env`, append
+`OPIK_API_KEY` / `OPIK_WORKSPACE` there (and update `.env.example`); otherwise use
+`~/.opik.config` (Python INI) or a new `.env` (TS). Never overwrite existing values;
+prefer `project_name` in code. Full decision tree: `references/setup.md`.
 
-**Before adding Opik config, inspect the project's existing config approach.** Follow this decision tree exactly:
+### Config Formats & Deployments
 
-1. **Check for existing `.env` / `.env.local` files and `dotenv` usage in code.**
-   - If the project loads a `.env` file (via `python-dotenv`, `dotenv`, or framework auto-loading): **append** `OPIK_API_KEY` and `OPIK_WORKSPACE` to that same file. Do NOT create a separate config file.
-   - If there is a `.env.example` or `.env.sample`: **also update it** with the new Opik vars (using placeholder values) so future developers know which vars are needed.
-
-2. **If no `.env` file exists:**
-   - Python: create or update `~/.opik.config` (INI format). This is the SDK's native config file.
-   - TypeScript/JavaScript: create `.env` (or `.env.local` if the project uses Next.js or similar).
-
-3. **Never introduce a second config mechanism.** If the project already uses `.env` for API keys, do NOT also create `~/.opik.config`. If it uses `~/.opik.config`, do NOT add Opik vars to `.env`.
-
-4. **Never overwrite existing values.** If `OPIK_API_KEY` is already set in `.env`, leave it. Only add vars that are missing.
-
-5. **Prefer setting `project_name` in code**, not in env files — one machine may log to many projects.
-
-6. **If the user provides an API key and workspace in the prompt**, use those values directly. If they provide only an API key, ask for the workspace or default to `"default"` for local OSS.
-
-### Config Formats
-
-Python `~/.opik.config` (INI):
-
-```ini
-[opik]
-api_key=your-api-key
-url_override=https://www.comet.com/opik/api
-workspace=your-workspace
-```
-
-Environment variables (append to existing `.env`):
-
-```bash
-# Opik
-OPIK_API_KEY=your-api-key
-OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
-OPIK_WORKSPACE=your-workspace
-```
-
-TypeScript uses `OPIK_WORKSPACE` as the env var and `workspaceName` in `new Opik({...})`.
-
-### Standard Deployments
-
-- Cloud: `https://www.comet.com/opik/api` — requires `api_key` + `workspace`
-- Local OSS: `http://localhost:5173/api` — usually workspace `default`
-- Self-hosted: use the deployment's custom URL, following the project's existing config style
-
-### Interactive Config (optional)
-
-```bash
-opik configure
-opik configure --use_local
-npx opik-ts configure
-npx opik-ts configure --use-local
-```
-
-Set the project name in code:
-
-```python
-@opik.track(project_name="my-project")
-def run():
-    ...
-```
-
-```typescript
-const client = new Opik({ projectName: "my-project" });
-```
+Env vars: `OPIK_API_KEY`, `OPIK_URL_OVERRIDE`, `OPIK_WORKSPACE` (TS uses `OPIK_WORKSPACE`
++ `workspaceName` in `new Opik({...})`). URLs — Cloud `https://www.comet.com/opik/api`
+(needs key + workspace); Local OSS `http://localhost:5173/api` (workspace `default`);
+self-hosted uses its custom URL. Python without `.env` uses `~/.opik.config` (INI). Set
+`project_name` / `projectName` in code, not env. Exact INI/env/interactive snippets and
+`opik configure` / `npx opik-ts configure` commands: `references/setup.md`.
 
 ## Python Instrumentation
 
@@ -115,37 +62,12 @@ from opik.integrations.dspy import OpikCallback           # DSPy
 from opik.integrations.adk import track_adk_agent_recursive  # Google ADK
 ```
 
-**CRITICAL — LiteLLM `OpikLogger` inside `@opik.track`:**
-
-If the codebase uses `litellm` AND you are adding `@opik.track` decorators, you MUST pass `current_span_data` via the metadata parameter on every `litellm.completion()` / `litellm.acompletion()` call. This tells the `OpikLogger` callback to nest under the active trace. Without it, `OpikLogger` creates **orphaned top-level traces** that are separate from your `@opik.track` hierarchy.
-
-```python
-from opik import track
-from opik.opik_context import get_current_span_data
-from litellm.integrations.opik.opik import OpikLogger
-import litellm
-
-litellm.callbacks = [OpikLogger()]
-
-@track
-def call_llm(messages, model="gpt-4o"):
-    return litellm.completion(
-        model=model,
-        messages=messages,
-        metadata={
-            "opik": {
-                "current_span_data": get_current_span_data(),
-                "tags": ["litellm"],
-            },
-        },
-    )
-
-@track(entrypoint=True)
-def agent(query: str) -> str:
-    return call_llm([{"role": "user", "content": query}])
-```
-
-This pattern applies whenever you see `litellm.completion` or `litellm.acompletion` in existing code that you are instrumenting with `@opik.track`.
+**CRITICAL — LiteLLM `OpikLogger` inside `@opik.track`:** whenever `litellm.completion` /
+`litellm.acompletion` appears in code you instrument with `@opik.track`, pass
+`metadata={"opik": {"current_span_data": get_current_span_data()}}` (from
+`opik.opik_context`) on every call so the `OpikLogger` callback nests under the active
+trace. Without it, `OpikLogger` creates **orphaned top-level traces** separate from your
+`@opik.track` hierarchy. Full snippet in `references/tracing-python.md`.
 
 ## TypeScript Instrumentation
 
@@ -153,41 +75,15 @@ This pattern applies whenever you see `litellm.completion` or `litellm.acompleti
 import { Opik } from "opik";
 
 const client = new Opik({ projectName: "my-project" });
-
-const trace = client.trace({
-  name: "my-agent",
-  input: { query: "What is ML?" },
-});
-
-const toolSpan = trace.span({
-  name: "retrieve-context",
-  type: "tool",
-  input: { query: "What is ML?" },
-});
-
-// retrieval logic
-toolSpan.end({ output: { documents: [] } });
-
-const llmSpan = trace.span({
-  name: "generate-response",
-  type: "llm",
-  input: { prompt: "What is ML?" },
-});
-
-// model call
-llmSpan.end({ output: { response: "Machine learning is..." } });
-
-trace.end({ output: { response: "Machine learning is..." } });
-await client.flush();
+const trace = client.trace({ name: "my-agent", input: { query: "What is ML?" } });
+const llmSpan = trace.span({ name: "generate", type: "llm", input: { prompt: "What is ML?" } });
+// ...model call...
+llmSpan.end({ output: { response: "..." } });
+trace.end({ output: { response: "..." } });
+await client.flush();  // always flush before exit
 ```
 
-Prefer the client-based path in TypeScript. Use `projectName` in code rather than machine-wide config when possible.
-
-For framework-specific integrations such as Vercel AI SDK or LangChain.js, see `references/tracing-typescript.md`.
-
-Always `await client.flush()` before exit.
-
-Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
+Prefer the client-based path in TypeScript and set `projectName` in code rather than machine-wide config. Valid span types: `general`, `llm`, `tool`, `guardrail`. The `track()` decorator form, framework integrations (Vercel AI SDK, LangChain.js), and full span/trace options are in `references/tracing-typescript.md`.
 
 ## Threads (Conversations)
 
@@ -200,22 +96,48 @@ def handle_message(session_id: str, message: str) -> str:
     return generate_response(session_id, message)
 ```
 
-Thread metrics:
-
-```python
-from opik.evaluation import evaluate_threads
-from opik.evaluation.metrics.conversation import (
-    SessionCompletenessQuality, UserFrustrationMetric, ConversationalCoherenceMetric,
-)
-
-results = evaluate_threads(project_name="chat-agent", metrics=[
-    SessionCompletenessQuality(), UserFrustrationMetric(), ConversationalCoherenceMetric(),
-])
-```
+Score whole threads with `opik.evaluation.evaluate_threads(project_name=..., metrics=[...])` using conversation metrics `SessionCompletenessQuality`, `UserFrustrationMetric`, `ConversationalCoherenceMetric` (from `opik.evaluation.metrics.conversation`) — see "Test Suites & Evaluation" below and `references/evaluation.md`.
 
 Use for chat agents, support bots, multi-step assistants. Skip for single-shot agents or batch processing.
 
 **Pitfalls:** Missing `thread_id` → turns appear as unrelated traces. Shared `thread_id` across users → conversations get mixed.
+
+## Test Suites & Evaluation
+
+"Evaluate my agent" means running it against scored test items. **Test Suites** are
+the recommended path (legacy `evaluate()` over Datasets still works — see the reference).
+A suite pairs test items with natural-language assertions (checked by an LLM judge) and
+an execution policy for multi-run reliability. Run it with `opik.run_tests()` (Python) /
+`runTests()` (TS); gate CI on `results.all_items_passed` / `results.allItemsPassed`.
+
+```python
+import opik
+
+client = opik.Opik()
+suite = client.get_or_create_test_suite(
+    name="my-agent-suite",
+    global_assertions=["Response is factually accurate and not hallucinated"],
+    global_execution_policy={"runs_per_item": 3, "pass_threshold": 2},
+)
+suite.insert([{"data": {"input": "Capital of France?"},
+               "assertions": ["Correctly identifies Paris"]}])
+
+results = opik.run_tests(
+    test_suite=suite,
+    task=lambda item: {"input": item["input"], "output": my_agent(item["input"])},
+    model="gpt-4o",
+)
+assert results.all_items_passed  # CI gate
+```
+
+**Run evaluations locally:** point `model` / env at a local OSS server
+(`OPIK_URL_OVERRIDE=http://localhost:5173/api`) and invoke `run_tests` from a script or
+`pytest`; results stream to the local Opik UI under "Test Suites" (not "Datasets").
+
+For multi-turn agents, score whole conversations with `opik.evaluation.evaluate_threads()`
+using `metrics=[SessionCompletenessQuality(), UserFrustrationMetric(), ConversationalCoherenceMetric()]`
+(see the Threads section). Full suite/dataset/experiment API, the 60+ built-in metrics, and the
+legacy `evaluate()` path live in `references/evaluation.md`.
 
 ## Prompt Library
 
@@ -225,80 +147,19 @@ Manage versioned prompts through the `opik.Opik` client. Use `create_prompt` / `
 
 **CRITICAL — call `get_prompt` / `get_chat_prompt` inside a `@opik.track`-decorated function.** This is what links the fetched prompt version to the trace, making it visible in the Traces view in the Opik UI. Fetching at module level works but the prompt will not appear in traces.
 
-**Python:**
+**Python** (fetch inside `@opik.track`; read config back from `prompt.metadata`):
 
 ```python
-import opik
-
-client = opik.Opik()
-
 @opik.track(entrypoint=True, project_name="my-agent")
 def run_agent(question: str) -> str:
-    # Fetch inside @track so the prompt version is recorded in the trace
     prompt = client.get_prompt(name="agent-system-prompt")
-    if prompt is None:
-        prompt = client.create_prompt(
-            name="agent-system-prompt",
-            prompt="You are a helpful assistant for {{product}}.",
-            metadata={"model": "gpt-4o", "temperature": 0.7, "max_tokens": 1024},
-        )
     system_message = prompt.format(product="Opik")
-    return llm_call(
-        model=prompt.metadata["model"],
-        temperature=prompt.metadata["temperature"],
-        max_tokens=prompt.metadata["max_tokens"],
-        system_prompt=system_message,
-        question=question,
-    )
+    return llm_call(model=prompt.metadata["model"], system_prompt=system_message, question=question)
 ```
 
-For a multi-turn chat template:
+Full example (with create-on-first-run fallback), multi-turn chat templates (`create_chat_prompt` / `get_chat_prompt`), and the TypeScript path (`getPrompt` / `createPrompt`): `references/prompt-library.md`.
 
-```python
-@opik.track(entrypoint=True, project_name="my-agent")
-def run_agent(task: str) -> str:
-    chat_prompt = client.get_chat_prompt(name="agent-chat-template")
-    if chat_prompt is None:
-        chat_prompt = client.create_chat_prompt(
-            name="agent-chat-template",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Help me with {{task}}"},
-            ],
-            metadata={"model": "gpt-4o", "temperature": 0.7},
-        )
-    messages = chat_prompt.format(task=task)
-    return llm_call(
-        model=chat_prompt.metadata["model"],
-        temperature=chat_prompt.metadata["temperature"],
-        messages=messages,
-    )
-```
-
-**TypeScript:**
-
-```typescript
-import { Opik, track } from "opik";
-
-const client = new Opik({ projectName: "my-agent" });
-
-const runAgent = track({ entrypoint: true, projectName: "my-agent" }, async (question: string) => {
-    // Fetch inside track() so the prompt version is recorded in the trace
-    let prompt = await client.getPrompt({ name: "agent-system-prompt" });
-    if (prompt === null) {
-        prompt = await client.createPrompt({
-            name: "agent-system-prompt",
-            prompt: "You are a helpful assistant for {{product}}.",
-            metadata: { model: "gpt-4o", temperature: 0.7, maxTokens: 1024 },
-        });
-    }
-    const systemMessage = prompt.format({ product: "Opik" });
-    const { model, temperature, maxTokens } = prompt.metadata as { model: string; temperature: number; maxTokens: number };
-    return llmCall({ model, temperature, maxTokens, systemMessage, question });
-});
-```
-
-After the initial run the prompt is registered in the library and can be edited, versioned, and have its metadata updated from the Opik UI. `get_prompt` / `get_chat_prompt` always returns the latest published version, including its metadata.
+After the first run the prompt is registered in the library; it can be edited, versioned, and have its metadata updated from the Opik UI, and `get_prompt` / `get_chat_prompt` always return the latest published version with its metadata.
 
 ## Local Runner (opik connect)
 
@@ -309,7 +170,7 @@ opik connect --pair <CODE> python3 app.py        # Python
 opik connect --pair <CODE> npx tsx app.ts         # TypeScript
 ```
 
-Replace `python3 app.py` or `npx tsx app.ts` with the normal command you use to start your app locally.
+Replace the trailing command with however you normally start the app.
 
 Python: `@track(entrypoint=True)` + type-hinted parameters for schema discovery.
 TypeScript: `track({ entrypoint: true, params: [{name, type}] }, fn)`.
@@ -339,9 +200,11 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 
 | Topic | File |
 |-------|------|
+| Setup config formats (INI / env / interactive) | `references/setup.md` |
 | Python SDK (decorators, async, distributed, config, entrypoint) | `references/tracing-python.md` |
 | TypeScript SDK (client, decorators, entrypoint, params) | `references/tracing-typescript.md` |
 | REST API | `references/tracing-rest-api.md` |
+| Prompt Library (chat templates, TypeScript) | `references/prompt-library.md` |
 | All integrations | `references/integrations.md` |
 | Core concepts (traces, spans, threads, metadata) | `references/observability.md` |
 | Test Suites, `run_tests()`, 60+ built-in metrics, legacy `evaluate()` | `references/evaluation.md` |

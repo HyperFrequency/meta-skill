@@ -1,6 +1,7 @@
 ---
 name: open-notebook
-description: Self-hosted, open-source alternative to Google NotebookLM for AI-powered research and document analysis. Use when organizing research materials into notebooks, ingesting diverse content sources (PDFs, videos, audio, web pages, Office documents), generating AI-powered notes and summaries, creating multi-speaker podcasts from research, chatting with documents using context-aware AI, searching across materials with full-text and vector search, or running custom content transformations. Supports 16+ AI providers including OpenAI, Anthropic, Google, Ollama, Groq, and Mistral with complete data privacy through self-hosting.
+version: 0.1.0
+description: Self-hosted, open-source alternative to Google NotebookLM for AI-powered research and document analysis. Use when organizing research materials into notebooks, ingesting diverse content sources (PDFs, videos, audio, web pages, Office documents), generating AI-powered notes and summaries, creating multi-speaker podcasts from research, chatting with documents using context-aware AI, searching across materials with full-text and vector search, or running custom content transformations via its REST API. Supports 20+ AI providers (via the Esperanto library) including OpenAI, Anthropic, Google, Ollama, Groq, and Mistral with complete data privacy through self-hosting. NOT for real-time/live audio transcription, standalone LLM chat without an underlying document corpus, a managed cloud SaaS (it requires self-hosting via Docker), or use as an importable Python library (interact only through the running server's REST API).
 license: MIT
 required_environment_variables: [{"name": "OPEN_NOTEBOOK_URL", "prompt": "Open Notebook server URL.", "required_for": "full functionality"}, {"name": "OPEN_NOTEBOOK_PASSWORD", "prompt": "Open Notebook password, if auth is enabled.", "required_for": "optional features"}, {"name": "OPEN_NOTEBOOK_ENCRYPTION_KEY", "prompt": "Encryption key for stored content, if configured.", "required_for": "optional features"}]
 metadata: {"version": "1.1", "skill-author": "K-Dense Inc.", "openclaw": {"envVars": [{"name": "OPEN_NOTEBOOK_URL", "required": true, "description": "Open Notebook server URL."}, {"name": "OPEN_NOTEBOOK_PASSWORD", "required": false, "description": "Open Notebook password, if auth is enabled."}, {"name": "OPEN_NOTEBOOK_ENCRYPTION_KEY", "required": false, "description": "Encryption key for stored content, if configured."}]}}
@@ -12,11 +13,11 @@ metadata: {"version": "1.1", "skill-author": "K-Dense Inc.", "openclaw": {"envVa
 
 Open Notebook is an open-source, self-hosted alternative to Google's NotebookLM that enables researchers to organize materials, generate AI-powered insights, create podcasts, and have context-aware conversations with their documents — all while maintaining complete data privacy.
 
-Unlike Google's Notebook LM, which has no publicly available API outside of the Enterprise version, Open Notebook provides a comprehensive REST API, supports 16+ AI providers, and runs entirely on your own infrastructure.
+Unlike Google's Notebook LM, which has no publicly available API outside of the Enterprise version, Open Notebook provides a comprehensive REST API, supports 20+ AI providers, and runs entirely on your own infrastructure.
 
 **Key advantages over NotebookLM:**
 - Full REST API for programmatic access and automation
-- Choice of 16+ AI providers (not locked to Google models)
+- Choice of 20+ AI providers (not locked to Google models)
 - Multi-speaker podcast generation with 1-4 customizable speakers (vs. 2-speaker limit)
 - Complete data sovereignty through self-hosting
 - Open source and fully extensible (MIT license)
@@ -218,7 +219,7 @@ result = requests.post(f"{BASE_URL}/transformations/execute", json={
 
 ## Supported AI Providers
 
-Open Notebook supports 16+ AI providers through the Esperanto library:
+Open Notebook supports 20+ AI providers through the Esperanto library. The most commonly configured providers are listed below (see Esperanto for the full set, which includes additional providers such as Cohere, Jina, DashScope, MiniMax, Deepgram, and OpenAI-Compatible endpoints):
 
 | Provider | LLM | Embedding | Speech-to-Text | Text-to-Speech |
 |----------|-----|-----------|----------------|----------------|

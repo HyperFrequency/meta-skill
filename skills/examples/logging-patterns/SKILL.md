@@ -1,9 +1,19 @@
 ---
 id: logging-patterns
-name: Logging Patterns
+name: logging-patterns
+version: 0.1.0
 description: >-
-  Common logging patterns and practices. This skill is designed to be
-  included in composite skills via the 'includes' feature.
+  Foundational logging conventions for observable applications: structured
+  key-value logging, correlation/request IDs, level discipline, and
+  sensitive-data redaction. Use when writing or reviewing logging in
+  application code, standardizing log output across a service, or composing
+  a larger skill that needs a logging baseline. This is a reusable building
+  block meant to be pulled into composite skills via the 'includes' feature,
+  so it exposes only the shared rules, pitfalls, and a reference example
+  rather than runnable steps. Do NOT use it as a standalone task runner, for
+  setting up a logging backend or transport (Loki, ELK, OpenTelemetry
+  collector config), for metrics/tracing pipeline design, or for
+  language/framework-specific logger setup beyond the illustrative snippet.
 tags: [logging, observability, example]
 ---
 

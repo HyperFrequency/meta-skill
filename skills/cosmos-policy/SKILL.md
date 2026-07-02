@@ -1,6 +1,6 @@
 ---
-name: evaluating-cosmos-policy
-description: Evaluates NVIDIA Cosmos Policy on LIBERO and RoboCasa simulation environments. Use when setting up cosmos-policy for robot manipulation evaluation, running headless GPU evaluations with EGL rendering, or profiling inference latency on cluster or local GPU machines.
+name: cosmos-policy
+description: Evaluates NVIDIA Cosmos Policy on LIBERO and RoboCasa simulation environments. Use when setting up cosmos-policy for robot manipulation evaluation, running headless GPU evaluations with EGL rendering, or profiling inference latency on cluster or local GPU machines. Not for training or fine-tuning Cosmos Policy from scratch, real-robot (non-simulation) evaluation, OpenVLA-based policies (use fine-tuning-openvla-oft), or Physical Intelligence pi0 models (use fine-tuning-serving-openpi).
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -14,38 +14,17 @@ Evaluation workflows for NVIDIA Cosmos Policy on LIBERO and RoboCasa simulation 
 
 ## Quick start
 
-Run a minimal LIBERO evaluation using the official public eval module:
+Run a minimal LIBERO evaluation using the official public eval module. The eval entrypoint requires a long, explicit flag block; the complete smoke command (plus interactive-GPU and batch variants) lives in [references/libero-commands.md](references/libero-commands.md). The minimal shape is:
 
 ```bash
 uv run --extra cu128 --group libero --python 3.10 \
   python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
     --config cosmos_predict2_2b_480p_libero__inference_only \
     --ckpt_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B \
-    --config_file cosmos_policy/config/config.py \
-    --use_wrist_image True \
-    --use_proprio True \
-    --normalize_proprio True \
-    --unnormalize_actions True \
-    --dataset_stats_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_dataset_statistics.json \
-    --t5_text_embeddings_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_t5_embeddings.pkl \
-    --trained_with_image_aug True \
-    --chunk_size 16 \
-    --num_open_loop_steps 16 \
     --task_suite_name libero_10 \
     --num_trials_per_task 1 \
-    --local_log_dir cosmos_policy/experiments/robot/libero/logs/ \
-    --seed 195 \
-    --randomize_seed False \
-    --deterministic True \
-    --run_id_note smoke \
-    --ar_future_prediction False \
-    --ar_value_prediction False \
-    --use_jpeg_compression True \
-    --flip_images True \
-    --num_denoising_steps_action 5 \
-    --num_denoising_steps_future_state 1 \
-    --num_denoising_steps_value 1 \
-    --data_collection False
+    --run_id_note smoke
+    # ... plus the full required flag block in references/libero-commands.md
 ```
 
 ## Core concepts
@@ -120,37 +99,7 @@ export PYOPENGL_PLATFORM=egl
 
 **Step 3: Run smoke evaluation**
 
-```bash
-uv run --extra cu128 --group libero --python 3.10 \
-  python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
-    --config cosmos_predict2_2b_480p_libero__inference_only \
-    --ckpt_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B \
-    --config_file cosmos_policy/config/config.py \
-    --use_wrist_image True \
-    --use_proprio True \
-    --normalize_proprio True \
-    --unnormalize_actions True \
-    --dataset_stats_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_dataset_statistics.json \
-    --t5_text_embeddings_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_t5_embeddings.pkl \
-    --trained_with_image_aug True \
-    --chunk_size 16 \
-    --num_open_loop_steps 16 \
-    --task_suite_name libero_10 \
-    --num_trials_per_task 1 \
-    --local_log_dir cosmos_policy/experiments/robot/libero/logs/ \
-    --seed 195 \
-    --randomize_seed False \
-    --deterministic True \
-    --run_id_note smoke \
-    --ar_future_prediction False \
-    --ar_value_prediction False \
-    --use_jpeg_compression True \
-    --flip_images True \
-    --num_denoising_steps_action 5 \
-    --num_denoising_steps_future_state 1 \
-    --num_denoising_steps_value 1 \
-    --data_collection False
-```
+Run the full smoke command (1 trial, `libero_10`). The [Quick start](#quick-start) shows the minimal shape; the complete flag block — including local, interactive-GPU, and batch variants — lives in [references/libero-commands.md](references/libero-commands.md).
 
 **Step 4: Validate and parse results**
 
@@ -168,41 +117,7 @@ print(results)
 
 **Step 5: Scale up**
 
-Run across all four LIBERO task suites with 50 trials:
-
-```bash
-for suite in libero_spatial libero_object libero_goal libero_10; do
-  uv run --extra cu128 --group libero --python 3.10 \
-    python -m cosmos_policy.experiments.robot.libero.run_libero_eval \
-      --config cosmos_predict2_2b_480p_libero__inference_only \
-      --ckpt_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B \
-      --config_file cosmos_policy/config/config.py \
-      --use_wrist_image True \
-      --use_proprio True \
-      --normalize_proprio True \
-      --unnormalize_actions True \
-      --dataset_stats_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_dataset_statistics.json \
-      --t5_text_embeddings_path nvidia/Cosmos-Policy-LIBERO-Predict2-2B/libero_t5_embeddings.pkl \
-      --trained_with_image_aug True \
-      --chunk_size 16 \
-      --num_open_loop_steps 16 \
-      --task_suite_name "$suite" \
-      --num_trials_per_task 50 \
-      --local_log_dir cosmos_policy/experiments/robot/libero/logs/ \
-      --seed 195 \
-      --randomize_seed False \
-      --deterministic True \
-      --run_id_note "suite_${suite}" \
-      --ar_future_prediction False \
-      --ar_value_prediction False \
-      --use_jpeg_compression True \
-      --flip_images True \
-      --num_denoising_steps_action 5 \
-      --num_denoising_steps_future_state 1 \
-      --num_denoising_steps_value 1 \
-      --data_collection False
-done
-```
+Run across all four LIBERO task suites (`libero_spatial`, `libero_object`, `libero_goal`, `libero_10`) with 50 trials each. Use the ready-made suite loop and full/batch command variants in [references/libero-commands.md](references/libero-commands.md) (only `--num_trials_per_task` and `--task_suite_name` change from the smoke command).
 
 ---
 
@@ -231,38 +146,7 @@ This fork installs the `robocasa` Python package expected by Cosmos Policy while
 
 **Step 2: Single-task smoke evaluation**
 
-```bash
-uv run --extra cu128 --group robocasa --python 3.10 \
-  python -m cosmos_policy.experiments.robot.robocasa.run_robocasa_eval \
-    --config cosmos_predict2_2b_480p_robocasa_50_demos_per_task__inference \
-    --ckpt_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B \
-    --config_file cosmos_policy/config/config.py \
-    --use_wrist_image True \
-    --num_wrist_images 1 \
-    --use_proprio True \
-    --normalize_proprio True \
-    --unnormalize_actions True \
-    --dataset_stats_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B/robocasa_dataset_statistics.json \
-    --t5_text_embeddings_path nvidia/Cosmos-Policy-RoboCasa-Predict2-2B/robocasa_t5_embeddings.pkl \
-    --trained_with_image_aug True \
-    --chunk_size 32 \
-    --num_open_loop_steps 16 \
-    --task_name TurnOffMicrowave \
-    --obj_instance_split A \
-    --num_trials_per_task 2 \
-    --local_log_dir cosmos_policy/experiments/robot/robocasa/logs/ \
-    --seed 195 \
-    --randomize_seed False \
-    --deterministic True \
-    --run_id_note smoke \
-    --use_variance_scale False \
-    --use_jpeg_compression True \
-    --flip_images True \
-    --num_denoising_steps_action 5 \
-    --num_denoising_steps_future_state 1 \
-    --num_denoising_steps_value 1 \
-    --data_collection False
-```
+Run the single-task smoke command (e.g. `--task_name TurnOffMicrowave --obj_instance_split A --num_trials_per_task 2`) via the `cosmos_policy.experiments.robot.robocasa.run_robocasa_eval` module. The full flag block plus multi-task variants are in [references/robocasa-commands.md](references/robocasa-commands.md). Note RoboCasa differs from LIBERO: `--group robocasa`, `--chunk_size 32`, `--num_wrist_images 1`, `--use_variance_scale False`, and a `--task_name`/`--obj_instance_split` pair instead of `--task_suite_name`.
 
 **Step 3: Validate outputs**
 
@@ -392,6 +276,7 @@ print(f"Rendering on GPU {cuda_dev}")
 
 **LIBERO command matrix**: See [references/libero-commands.md](references/libero-commands.md)
 **RoboCasa command matrix**: See [references/robocasa-commands.md](references/robocasa-commands.md)
+**Inference profiling** (GPU-accurate latency/throughput, VRAM, Nsight traces): See [references/profiling.md](references/profiling.md)
 
 ## Resources
 

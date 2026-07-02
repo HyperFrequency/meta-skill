@@ -1,6 +1,6 @@
 ---
-name: pyvene-interventions
-description: Provides guidance for performing causal interventions on PyTorch models using pyvene's declarative intervention framework. Use when conducting causal tracing, activation patching, interchange intervention training, or testing causal hypotheses about model behavior.
+name: pyvene
+description: Guidance for causal interventions on PyTorch models using pyvene's declarative, dict-based intervention framework. Use when conducting causal tracing (ROME-style), activation patching, interchange intervention training (IIT/DAS), model steering, or testing causal hypotheses about specific model components, and when you want to save/share intervention experiments via HuggingFace. Do NOT use for exploratory activation analysis or hooks (use TransformerLens), training/analyzing sparse autoencoders (use SAELens), or remote execution on very large models you cannot host locally (use nnsight).
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -12,24 +12,26 @@ dependencies: [pyvene>=0.1.8, torch>=2.0.0, transformers>=4.30.0]
 
 pyvene is Stanford NLP's library for performing causal interventions on PyTorch models. It provides a declarative, dict-based framework for activation patching, causal tracing, and interchange intervention training - making intervention experiments reproducible and shareable.
 
-**GitHub**: [stanfordnlp/pyvene](https://github.com/stanfordnlp/pyvene) (840+ stars)
-**Paper**: [pyvene: A Library for Understanding and Improving PyTorch Models via Interventions](https://aclanthology.org/2024.naacl-demo.16) (NAACL 2024)
+- **GitHub**: [stanfordnlp/pyvene](https://github.com/stanfordnlp/pyvene)
+- **Paper**: [pyvene: A Library for Understanding and Improving PyTorch Models via Interventions](https://aclanthology.org/2024.naacl-demo.16) (NAACL 2024, [arXiv:2403.07809](https://arxiv.org/abs/2403.07809))
+
+This file is a router. Detailed recipes, the full API surface, and troubleshooting
+live in `references/` (see [Reference Documentation](#reference-documentation)).
 
 ## When to Use pyvene
 
 **Use pyvene when you need to:**
 - Perform causal tracing (ROME-style localization)
 - Run activation patching experiments
-- Conduct interchange intervention training (IIT)
+- Conduct interchange intervention training (IIT) or DAS
 - Test causal hypotheses about model components
 - Share/reproduce intervention experiments via HuggingFace
 - Work with any PyTorch architecture (not just transformers)
 
-**Consider alternatives when:**
-- You need exploratory activation analysis → Use **TransformerLens**
-- You want to train/analyze SAEs → Use **SAELens**
-- You need remote execution on massive models → Use **nnsight**
-- You want lower-level control → Use **nnsight**
+**Consider sibling skills instead when:**
+- You need exploratory activation analysis or hooks → **TransformerLens**
+- You want to train/analyze SAEs → **SAELens**
+- You need remote execution on massive models, or lower-level control → **nnsight**
 
 ## Installation
 
@@ -37,7 +39,6 @@ pyvene is Stanford NLP's library for performing causal interventions on PyTorch 
 pip install pyvene
 ```
 
-Standard import:
 ```python
 import pyvene as pv
 ```
@@ -46,17 +47,17 @@ import pyvene as pv
 
 ### IntervenableModel
 
-The main class that wraps any PyTorch model with intervention capabilities:
+The main class wraps any PyTorch model with intervention capabilities. You declare
+*what* to intervene on with an `IntervenableConfig` of `RepresentationConfig`s, then
+call the wrapped model with `base` and `sources`:
 
 ```python
 import pyvene as pv
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Load base model
 model = AutoModelForCausalLM.from_pretrained("gpt2")
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
-# Define intervention configuration
 config = pv.IntervenableConfig(
     representations=[
         pv.RepresentationConfig(
@@ -67,7 +68,6 @@ config = pv.IntervenableConfig(
     ]
 )
 
-# Create intervenable model
 intervenable = pv.IntervenableModel(config, model)
 ```
 
@@ -79,13 +79,15 @@ intervenable = pv.IntervenableModel(config, model)
 | `AdditionIntervention` | Add activations to base run | Steering, ablation |
 | `SubtractionIntervention` | Subtract activations | Ablation |
 | `ZeroIntervention` | Zero out activations | Component knockout |
-| `RotatedSpaceIntervention` | DAS trainable intervention | Causal discovery |
+| `NoiseIntervention` | Add Gaussian noise | Corruption (causal tracing) |
 | `CollectIntervention` | Collect activations | Probing, analysis |
+| `RotatedSpaceIntervention` | Trainable rotation | Causal discovery (IIT) |
+| `LowRankRotatedSpaceIntervention` | Low-rank trainable rotation | DAS |
+| `LoRAIntervention` | LoRA adapter as intervention | Steering (v0.1.8+) |
 
 ### Component Targets
 
 ```python
-# Available components to intervene on
 components = [
     "block_input",      # Input to transformer block
     "block_output",     # Output of transformer block
@@ -102,315 +104,17 @@ components = [
 ]
 ```
 
-## Workflow 1: Causal Tracing (ROME-style)
+## Workflows (in references/)
 
-Locate where factual associations are stored by corrupting inputs and restoring activations.
+Full step-by-step recipes live in [references/workflows.md](references/workflows.md):
 
-### Step-by-Step
+1. **Causal tracing (ROME-style)** - corrupt inputs, restore activations, sweep layers/positions.
+2. **Activation patching for circuit analysis** - patch components, measure logit difference (IOI).
+3. **Interchange intervention training (IIT) and DAS** - train rotations to find causal subspaces.
+4. **Model steering** - load a pre-trained intervention and steer during generation.
 
-```python
-import pyvene as pv
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
-
-model = AutoModelForCausalLM.from_pretrained("gpt2-xl")
-tokenizer = AutoTokenizer.from_pretrained("gpt2-xl")
-
-# 1. Define clean and corrupted inputs
-clean_prompt = "The Space Needle is in downtown"
-corrupted_prompt = "The ##### ###### ## ## ########"  # Noise
-
-clean_tokens = tokenizer(clean_prompt, return_tensors="pt")
-corrupted_tokens = tokenizer(corrupted_prompt, return_tensors="pt")
-
-# 2. Get clean activations (source)
-with torch.no_grad():
-    clean_outputs = model(**clean_tokens, output_hidden_states=True)
-    clean_states = clean_outputs.hidden_states
-
-# 3. Define restoration intervention
-def run_causal_trace(layer, position):
-    """Restore clean activation at specific layer and position."""
-    config = pv.IntervenableConfig(
-        representations=[
-            pv.RepresentationConfig(
-                layer=layer,
-                component="block_output",
-                intervention_type=pv.VanillaIntervention,
-                unit="pos",
-                max_number_of_units=1,
-            )
-        ]
-    )
-
-    intervenable = pv.IntervenableModel(config, model)
-
-    # Run with intervention
-    _, patched_outputs = intervenable(
-        base=corrupted_tokens,
-        sources=[clean_tokens],
-        unit_locations={"sources->base": ([[[position]]], [[[position]]])},
-        output_original_output=True,
-    )
-
-    # Return probability of correct token
-    probs = torch.softmax(patched_outputs.logits[0, -1], dim=-1)
-    seattle_token = tokenizer.encode(" Seattle")[0]
-    return probs[seattle_token].item()
-
-# 4. Sweep over layers and positions
-n_layers = model.config.n_layer
-seq_len = clean_tokens["input_ids"].shape[1]
-
-results = torch.zeros(n_layers, seq_len)
-for layer in range(n_layers):
-    for pos in range(seq_len):
-        results[layer, pos] = run_causal_trace(layer, pos)
-
-# 5. Visualize (layer x position heatmap)
-# High values indicate causal importance
-```
-
-### Checklist
-- [ ] Prepare clean prompt with target factual association
-- [ ] Create corrupted version (noise or counterfactual)
-- [ ] Define intervention config for each (layer, position)
-- [ ] Run patching sweep
-- [ ] Identify causal hotspots in heatmap
-
-## Workflow 2: Activation Patching for Circuit Analysis
-
-Test which components are necessary for a specific behavior.
-
-### Step-by-Step
-
-```python
-import pyvene as pv
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
-
-model = AutoModelForCausalLM.from_pretrained("gpt2")
-tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-# IOI task setup
-clean_prompt = "When John and Mary went to the store, Mary gave a bottle to"
-corrupted_prompt = "When John and Mary went to the store, John gave a bottle to"
-
-clean_tokens = tokenizer(clean_prompt, return_tensors="pt")
-corrupted_tokens = tokenizer(corrupted_prompt, return_tensors="pt")
-
-john_token = tokenizer.encode(" John")[0]
-mary_token = tokenizer.encode(" Mary")[0]
-
-def logit_diff(logits):
-    """IO - S logit difference."""
-    return logits[0, -1, john_token] - logits[0, -1, mary_token]
-
-# Patch attention output at each layer
-def patch_attention(layer):
-    config = pv.IntervenableConfig(
-        representations=[
-            pv.RepresentationConfig(
-                layer=layer,
-                component="attention_output",
-                intervention_type=pv.VanillaIntervention,
-            )
-        ]
-    )
-
-    intervenable = pv.IntervenableModel(config, model)
-
-    _, patched_outputs = intervenable(
-        base=corrupted_tokens,
-        sources=[clean_tokens],
-    )
-
-    return logit_diff(patched_outputs.logits).item()
-
-# Find which layers matter
-results = []
-for layer in range(model.config.n_layer):
-    diff = patch_attention(layer)
-    results.append(diff)
-    print(f"Layer {layer}: logit diff = {diff:.3f}")
-```
-
-## Workflow 3: Interchange Intervention Training (IIT)
-
-Train interventions to discover causal structure.
-
-### Step-by-Step
-
-```python
-import pyvene as pv
-from transformers import AutoModelForCausalLM
-import torch
-
-model = AutoModelForCausalLM.from_pretrained("gpt2")
-
-# 1. Define trainable intervention
-config = pv.IntervenableConfig(
-    representations=[
-        pv.RepresentationConfig(
-            layer=6,
-            component="block_output",
-            intervention_type=pv.RotatedSpaceIntervention,  # Trainable
-            low_rank_dimension=64,  # Learn 64-dim subspace
-        )
-    ]
-)
-
-intervenable = pv.IntervenableModel(config, model)
-
-# 2. Set up training
-optimizer = torch.optim.Adam(
-    intervenable.get_trainable_parameters(),
-    lr=1e-4
-)
-
-# 3. Training loop (simplified)
-for base_input, source_input, target_output in dataloader:
-    optimizer.zero_grad()
-
-    _, outputs = intervenable(
-        base=base_input,
-        sources=[source_input],
-    )
-
-    loss = criterion(outputs.logits, target_output)
-    loss.backward()
-    optimizer.step()
-
-# 4. Analyze learned intervention
-# The rotation matrix reveals causal subspace
-rotation = intervenable.interventions["layer.6.block_output"][0].rotate_layer
-```
-
-### DAS (Distributed Alignment Search)
-
-```python
-# Low-rank rotation finds interpretable subspaces
-config = pv.IntervenableConfig(
-    representations=[
-        pv.RepresentationConfig(
-            layer=8,
-            component="block_output",
-            intervention_type=pv.LowRankRotatedSpaceIntervention,
-            low_rank_dimension=1,  # Find 1D causal direction
-        )
-    ]
-)
-```
-
-## Workflow 4: Model Steering (Honest LLaMA)
-
-Steer model behavior during generation.
-
-```python
-import pyvene as pv
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf")
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
-
-# Load pre-trained steering intervention
-intervenable = pv.IntervenableModel.load(
-    "zhengxuanzenwu/intervenable_honest_llama2_chat_7B",
-    model=model,
-)
-
-# Generate with steering
-prompt = "Is the earth flat?"
-inputs = tokenizer(prompt, return_tensors="pt")
-
-# Intervention applied during generation
-outputs = intervenable.generate(
-    inputs,
-    max_new_tokens=100,
-    do_sample=False,
-)
-
-print(tokenizer.decode(outputs[0]))
-```
-
-## Saving and Sharing Interventions
-
-```python
-# Save locally
-intervenable.save("./my_intervention")
-
-# Load from local
-intervenable = pv.IntervenableModel.load(
-    "./my_intervention",
-    model=model,
-)
-
-# Share on HuggingFace
-intervenable.save_intervention("username/my-intervention")
-
-# Load from HuggingFace
-intervenable = pv.IntervenableModel.load(
-    "username/my-intervention",
-    model=model,
-)
-```
-
-## Common Issues & Solutions
-
-### Issue: Wrong intervention location
-```python
-# WRONG: Incorrect component name
-config = pv.RepresentationConfig(
-    component="mlp",  # Not valid!
-)
-
-# RIGHT: Use exact component name
-config = pv.RepresentationConfig(
-    component="mlp_output",  # Valid
-)
-```
-
-### Issue: Dimension mismatch
-```python
-# Ensure source and base have compatible shapes
-# For position-specific interventions:
-config = pv.RepresentationConfig(
-    unit="pos",
-    max_number_of_units=1,  # Intervene on single position
-)
-
-# Specify locations explicitly
-intervenable(
-    base=base_tokens,
-    sources=[source_tokens],
-    unit_locations={"sources->base": ([[[5]]], [[[5]]])},  # Position 5
-)
-```
-
-### Issue: Memory with large models
-```python
-# Use gradient checkpointing
-model.gradient_checkpointing_enable()
-
-# Or intervene on fewer components
-config = pv.IntervenableConfig(
-    representations=[
-        pv.RepresentationConfig(
-            layer=8,  # Single layer instead of all
-            component="block_output",
-        )
-    ]
-)
-```
-
-### Issue: LoRA integration
-```python
-# pyvene v0.1.8+ supports LoRAs as interventions
-config = pv.RepresentationConfig(
-    intervention_type=pv.LoRAIntervention,
-    low_rank_dimension=16,
-)
-```
+Shorter single-concept walkthroughs (position-specific interventions, collecting
+activations, generation) are in [references/tutorials.md](references/tutorials.md).
 
 ## Key Classes Reference
 
@@ -423,44 +127,35 @@ config = pv.RepresentationConfig(
 | `RotatedSpaceIntervention` | Trainable DAS intervention |
 | `CollectIntervention` | Activation collection |
 
+Full signatures, saving/sharing, and the forward-pass contract: [references/api.md](references/api.md).
+
 ## Supported Models
 
-pyvene works with any PyTorch model. Tested on:
-- GPT-2 (all sizes)
-- LLaMA / LLaMA-2
-- Pythia
-- Mistral / Mixtral
-- OPT
-- BLIP (vision-language)
-- ESM (protein models)
-- Mamba (state space)
+pyvene works with any PyTorch model. Tested on GPT-2 (all sizes), LLaMA / LLaMA-2,
+Pythia, Mistral / Mixtral, OPT, BLIP (vision-language), ESM (protein models), and
+Mamba (state space).
+
+## Troubleshooting
+
+Common failure modes (wrong component name, dimension mismatch, memory on large
+models, LoRA integration) are documented in
+[references/troubleshooting.md](references/troubleshooting.md).
 
 ## Reference Documentation
-
-For detailed API documentation, tutorials, and advanced usage, see the `references/` folder:
 
 | File | Contents |
 |------|----------|
 | [references/README.md](references/README.md) | Overview and quick start guide |
 | [references/api.md](references/api.md) | Complete API reference for IntervenableModel, intervention types, configurations |
-| [references/tutorials.md](references/tutorials.md) | Step-by-step tutorials for causal tracing, activation patching, DAS |
+| [references/workflows.md](references/workflows.md) | End-to-end recipes: causal tracing, activation patching, IIT/DAS, steering, saving/sharing |
+| [references/tutorials.md](references/tutorials.md) | Single-concept tutorials: patching, tracing, DAS, position-specific, collecting, generation |
+| [references/troubleshooting.md](references/troubleshooting.md) | Common issues and fixes |
 
 ## External Resources
 
-### Tutorials
-- [pyvene 101](https://stanfordnlp.github.io/pyvene/tutorials/pyvene_101.html)
-- [Causal Tracing Tutorial](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/Causal_Tracing.html)
-- [IOI Circuit Replication](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/IOI_Replication.html)
-- [DAS Introduction](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/DAS_Main_Introduction.html)
-
-### Papers
-- [Locating and Editing Factual Associations in GPT](https://arxiv.org/abs/2202.05262) - Meng et al. (2022)
-- [Inference-Time Intervention](https://arxiv.org/abs/2306.03341) - Li et al. (2023)
-- [Interpretability in the Wild](https://arxiv.org/abs/2211.00593) - Wang et al. (2022)
-
-### Official Documentation
-- [Official Docs](https://stanfordnlp.github.io/pyvene/)
-- [API Reference](https://stanfordnlp.github.io/pyvene/api/)
+- [Official Docs](https://stanfordnlp.github.io/pyvene/) · [API Reference](https://stanfordnlp.github.io/pyvene/api/)
+- Tutorials: [pyvene 101](https://stanfordnlp.github.io/pyvene/tutorials/pyvene_101.html) · [Causal Tracing](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/Causal_Tracing.html) · [IOI Replication](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/IOI_Replication.html) · [DAS Introduction](https://stanfordnlp.github.io/pyvene/tutorials/advanced_tutorials/DAS_Main_Introduction.html)
+- Papers: [ROME](https://arxiv.org/abs/2202.05262) (Meng et al. 2022) · [Inference-Time Intervention](https://arxiv.org/abs/2306.03341) (Li et al. 2023) · [Interpretability in the Wild](https://arxiv.org/abs/2211.00593) (Wang et al. 2022)
 
 ## Comparison with Other Tools
 

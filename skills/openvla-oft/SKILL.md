@@ -1,6 +1,6 @@
 ---
-name: fine-tuning-openvla-oft
-description: Fine-tunes and evaluates OpenVLA-OFT and OpenVLA-OFT+ policies for robot action generation with continuous action heads, LoRA adaptation, and FiLM conditioning on LIBERO simulation and ALOHA real-world setups. Use when reproducing OpenVLA-OFT paper results, training custom VLA action heads (L1 or diffusion), deploying server-client inference for ALOHA, or debugging normalization, LoRA merge, and cross-GPU issues.
+name: openvla-oft
+description: Fine-tunes and evaluates OpenVLA-OFT and OpenVLA-OFT+ policies for robot action generation with continuous action heads, LoRA adaptation, and FiLM conditioning on LIBERO simulation and ALOHA real-world setups. Use when reproducing OpenVLA-OFT paper results, training custom VLA action heads (L1 or diffusion), deploying server-client inference for ALOHA, or debugging normalization, LoRA merge, and cross-GPU issues. Not for general LLM fine-tuning, alternative VLA models (pi0/pi0.5), or NVIDIA Cosmos Policy—use fine-tuning-serving-openpi or evaluating-cosmos-policy instead.
 version: 1.0.0
 author: Orchestra Research
 license: MIT

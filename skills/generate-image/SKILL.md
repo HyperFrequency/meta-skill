@@ -1,6 +1,7 @@
 ---
 name: generate-image
-description: Generate or edit images using AI models (FLUX, Nano Banana 2). Use for general-purpose image generation including photos, illustrations, artwork, visual assets, concept art, and any image that is not a technical diagram or schematic. For flowcharts, circuits, pathways, and technical diagrams, use the scientific-schematics skill instead.
+version: 0.1.0
+description: Generate or edit images via OpenRouter using AI models (Gemini 3.1 Flash Image Preview, FLUX.2 Pro, FLUX.2 Flex). Use for general-purpose image generation including photos, illustrations, artwork, visual assets, concept art, and any image that is not a technical diagram or schematic. Not for flowcharts, circuits, pathways, and technical diagrams (use scientific-schematics instead) or infographics (use infographics instead).
 license: MIT license
 compatibility: Requires an OpenRouter API key
 metadata: {"version": "1.0", "skill-author": "K-Dense Inc."}
@@ -57,10 +58,10 @@ The script will automatically detect the `.env` file and provide clear error mes
 
 ## Model Selection
 
-**Default model**: `google/gemini-3.1-flash-image-preview` (high quality, recommended)
+**Default model**: `google/gemini-3.1-flash-image-preview` (high quality, recommended). This is Google's Gemini 3.1 Flash image model on OpenRouter, marketed under the nickname "Nano Banana 2". For higher-fidelity work, OpenRouter also exposes `google/gemini-3-pro-image` ("Nano Banana Pro").
 
 **Available models for generation and editing**:
-- `google/gemini-3.1-flash-image-preview` - High quality, supports generation + editing
+- `google/gemini-3.1-flash-image-preview` - High quality, supports generation + editing (a.k.a. "Nano Banana 2")
 - `black-forest-labs/flux.2-pro` - Fast, high quality, supports generation + editing
 
 **Generation only**:
@@ -176,6 +177,7 @@ If the script fails, read the error message and address the issue before retryin
 ## Integration with Other Skills
 
 - **scientific-schematics**: Use for technical diagrams, flowcharts, circuits, pathways
+- **infographics**: Use for data-driven infographics with charts, stats, and layouts
 - **generate-image**: Use for photos, illustrations, artwork, visual concepts
 - **scientific-slides**: Combine with generate-image for visually rich presentations
 - **latex-posters**: Use generate-image for poster visuals and hero images

@@ -313,3 +313,67 @@ async def test_position_bias_mitigation():
     assert result.consistent == True
 ```
 
+## Prompt Templates
+
+### Direct Scoring Prompt
+
+Require evidence before the score so the judge anchors its decision in observable output features before emitting a number.
+
+```
+You are an expert evaluator assessing response quality.
+
+## Task
+Evaluate the following response against each criterion.
+
+## Original Prompt
+{prompt}
+
+## Response to Evaluate
+{response}
+
+## Criteria
+{for each criterion: name, description, weight}
+
+## Instructions
+For each criterion:
+1. Find specific evidence in the response
+2. Score according to the rubric (1-{max} scale)
+3. Justify your score with evidence
+4. Suggest one specific improvement
+
+## Output Format
+Respond with structured JSON containing scores, justifications, and summary.
+```
+
+### Pairwise Comparison Prompt
+
+```
+You are an expert evaluator comparing two AI responses.
+
+## Critical Instructions
+- Do NOT prefer responses because they are longer
+- Do NOT prefer responses based on position (first vs second)
+- Focus ONLY on quality according to the specified criteria
+- Ties are acceptable when responses are genuinely equivalent
+
+## Original Prompt
+{prompt}
+
+## Response A
+{response_a}
+
+## Response B
+{response_b}
+
+## Comparison Criteria
+{criteria list}
+
+## Instructions
+1. Analyze each response independently first
+2. Compare them on each criterion
+3. Determine overall winner with confidence level
+
+## Output Format
+JSON with per-criterion comparison, overall winner, confidence (0-1), and reasoning.
+```
+

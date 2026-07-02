@@ -1,6 +1,7 @@
 ---
 name: cmux
-description: End-user control of cmux topology and routing (windows, workspaces, panes/surfaces, focus, moves, reorder, identify, trigger flash). Use when automation needs deterministic placement and navigation in a multi-pane cmux layout.
+version: 0.1.0
+description: End-user control of cmux topology and routing (windows, workspaces, panes/surfaces, focus, moves, reorder, identify, trigger flash). Use when automation needs deterministic placement and navigation in a multi-pane cmux layout. Do NOT use for browser/webview automation on surfaces (use cmux-browser), editing cmux.json or app settings (use cmux-settings), the markdown viewer panel (use cmux-markdown), caller-workspace safety rules (use cmux-workspace), or non-cmux terminal multiplexers like tmux/screen.
 ---
 
 # cmux Core Control

@@ -1,7 +1,7 @@
 ---
 name: outlines
-description: Guarantee valid JSON/XML/code structure during generation, use Pydantic models for type-safe outputs, support local models (Transformers, vLLM), and maximize inference speed with Outlines - dottxt.ai's structured generation library
-version: 1.0.0
+description: Outlines (dottxt.ai) structured text generation — guarantee valid JSON/regex/grammar-constrained outputs from local LLMs via FSM-based constrained token sampling, with native Pydantic support. Use WHEN generating structured outputs (JSON, Pydantic models, regex-matched strings, multiple-choice, enums, typed scalars) from local models (Transformers, llama.cpp, vLLM) and you need 100% schema-valid output at near-zero overhead. Do NOT use for API-only providers that need automatic retry/validation loops (use the sibling `instructor` skill), token-healing or complex agentic control flow (use `guidance`), self-optimizing prompt pipelines (use `dspy`), or plain unconstrained free-text generation where no schema applies.
+version: 1.1.0
 author: Orchestra Research
 license: MIT
 tags: [Prompt Engineering, Outlines, Structured Generation, JSON Schema, Pydantic, Local Models, Grammar-Based Generation, vLLM, Transformers, Type Safety]
@@ -10,53 +10,41 @@ dependencies: [outlines, transformers, vllm, pydantic]
 
 # Outlines: Structured Text Generation
 
-## When to Use This Skill
+Router skill for Outlines, dottxt.ai's library for guaranteed-valid structured
+generation. It converts a schema (Pydantic / JSON Schema / regex / choice set)
+into a Finite State Machine that filters invalid tokens at the logit level, so
+outputs are valid by construction with near-zero overhead. Deep material lives in
+`references/` — start here, then jump.
 
-Use Outlines when you need to:
-- **Guarantee valid JSON/XML/code** structure during generation
-- **Use Pydantic models** for type-safe outputs
-- **Support local models** (Transformers, llama.cpp, vLLM)
-- **Maximize inference speed** with zero-overhead structured generation
-- **Generate against JSON schemas** automatically
-- **Control token sampling** at the grammar level
+## When to Use
 
-**GitHub Stars**: 8,000+ | **From**: dottxt.ai (formerly .txt)
+- Guarantee valid **JSON / Pydantic / regex / code** structure during generation.
+- Get **type-safe** outputs (ints, floats, bools, enums, `Literal`s) — not strings.
+- Run on **local models** (Transformers, llama.cpp, vLLM) at high throughput.
+- Need **100% valid outputs with no retry loop** (FSM-enforced).
+
+For API-first generation with automatic retries see the sibling `instructor`
+skill; for token healing / agentic control flow see `guidance`; for prompt
+optimization pipelines see `dspy`.
 
 ## Installation
 
 ```bash
-# Base installation
-pip install outlines
-
-# With specific backends
-pip install outlines transformers  # Hugging Face models
-pip install outlines llama-cpp-python  # llama.cpp
-pip install outlines vllm  # vLLM for high-throughput
+pip install "outlines>=1.0"               # base (v1 API shown below)
+pip install "outlines>=1.0" transformers  # Hugging Face models
+pip install "outlines>=1.0" llama-cpp-python  # llama.cpp (GGUF)
+pip install "outlines>=1.0" vllm          # high-throughput serving
 ```
+
+> API note: examples below use the **Outlines v1 API** (`outlines.from_*` +
+> `output_type=`). The pre-1.0 `outlines.models.*` / `outlines.generate.*`
+> helpers are deprecated; see the v1 migration in the official docs.
 
 ## Quick Start
 
-### Basic Example: Classification
-
-```python
-import outlines
-from typing import Literal
-
-# Load model
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-
-# Generate with type constraint
-prompt = "Sentiment of 'This product is amazing!': "
-generator = outlines.generate.choice(model, ["positive", "negative", "neutral"])
-sentiment = generator(prompt)
-
-print(sentiment)  # "positive" (guaranteed one of these)
-```
-
-### With Pydantic Models
-
 ```python
 from pydantic import BaseModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import outlines
 
 class User(BaseModel):
@@ -64,589 +52,96 @@ class User(BaseModel):
     age: int
     email: str
 
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-
-# Generate structured output
-prompt = "Extract user: John Doe, 30 years old, john@example.com"
-generator = outlines.generate.json(model, User)
-user = generator(prompt)
-
-print(user.name)   # "John Doe"
-print(user.age)    # 30
-print(user.email)  # "john@example.com"
-```
-
-## Core Concepts
-
-### 1. Constrained Token Sampling
-
-Outlines uses Finite State Machines (FSM) to constrain token generation at the logit level.
-
-**How it works:**
-1. Convert schema (JSON/Pydantic/regex) to context-free grammar (CFG)
-2. Transform CFG into Finite State Machine (FSM)
-3. Filter invalid tokens at each step during generation
-4. Fast-forward when only one valid token exists
-
-**Benefits:**
-- **Zero overhead**: Filtering happens at token level
-- **Speed improvement**: Fast-forward through deterministic paths
-- **Guaranteed validity**: Invalid outputs impossible
-
-```python
-import outlines
-
-# Pydantic model -> JSON schema -> CFG -> FSM
-class Person(BaseModel):
-    name: str
-    age: int
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-
-# Behind the scenes:
-# 1. Person -> JSON schema
-# 2. JSON schema -> CFG
-# 3. CFG -> FSM
-# 4. FSM filters tokens during generation
-
-generator = outlines.generate.json(model, Person)
-result = generator("Generate person: Alice, 25")
-```
-
-### 2. Structured Generators
-
-Outlines provides specialized generators for different output types.
-
-#### Choice Generator
-
-```python
-# Multiple choice selection
-generator = outlines.generate.choice(
-    model,
-    ["positive", "negative", "neutral"]
+model = outlines.from_transformers(                       # schema -> CFG -> FSM
+    AutoModelForCausalLM.from_pretrained("microsoft/Phi-3-mini-4k-instruct"),
+    AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-4k-instruct"),
 )
-
-sentiment = generator("Review: This is great!")
-# Result: One of the three choices
+# Call the model with output_type; returns a schema-valid JSON string
+result = model("Extract user: John Doe, 30, john@example.com", output_type=User)
+user = User.model_validate_json(result)
+print(user.name, user.age)   # guaranteed valid User instance
 ```
 
-#### JSON Generator
-
 ```python
-from pydantic import BaseModel
-
-class Product(BaseModel):
-    name: str
-    price: float
-    in_stock: bool
-
-# Generate valid JSON matching schema
-generator = outlines.generate.json(model, Product)
-product = generator("Extract: iPhone 15, $999, available")
-
-# Guaranteed valid Product instance
-print(type(product))  # <class '__main__.Product'>
-```
-
-#### Regex Generator
-
-```python
-# Generate text matching regex
-generator = outlines.generate.regex(
-    model,
-    r"[0-9]{3}-[0-9]{3}-[0-9]{4}"  # Phone number pattern
-)
-
-phone = generator("Generate phone number:")
-# Result: "555-123-4567" (guaranteed to match pattern)
-```
-
-#### Integer/Float Generators
-
-```python
-# Generate specific numeric types
-int_generator = outlines.generate.integer(model)
-age = int_generator("Person's age:")  # Guaranteed integer
-
-float_generator = outlines.generate.float(model)
-price = float_generator("Product price:")  # Guaranteed float
-```
-
-### 3. Model Backends
-
-Outlines supports multiple local and API-based backends.
-
-#### Transformers (Hugging Face)
-
-```python
-import outlines
-
-# Load from Hugging Face
-model = outlines.models.transformers(
-    "microsoft/Phi-3-mini-4k-instruct",
-    device="cuda"  # Or "cpu"
-)
-
-# Use with any generator
-generator = outlines.generate.json(model, YourModel)
-```
-
-#### llama.cpp
-
-```python
-# Load GGUF model
-model = outlines.models.llamacpp(
-    "./models/llama-3.1-8b-instruct.Q4_K_M.gguf",
-    n_gpu_layers=35
-)
-
-generator = outlines.generate.json(model, YourModel)
-```
-
-#### vLLM (High Throughput)
-
-```python
-# For production deployments
-model = outlines.models.vllm(
-    "meta-llama/Llama-3.1-8B-Instruct",
-    tensor_parallel_size=2  # Multi-GPU
-)
-
-generator = outlines.generate.json(model, YourModel)
-```
-
-#### OpenAI (Limited Support)
-
-```python
-# Basic OpenAI support
-model = outlines.models.openai(
-    "gpt-4o-mini",
-    api_key="your-api-key"
-)
-
-# Note: Some features limited with API models
-generator = outlines.generate.json(model, YourModel)
-```
-
-### 4. Pydantic Integration
-
-Outlines has first-class Pydantic support with automatic schema translation.
-
-#### Basic Models
-
-```python
-from pydantic import BaseModel, Field
-
-class Article(BaseModel):
-    title: str = Field(description="Article title")
-    author: str = Field(description="Author name")
-    word_count: int = Field(description="Number of words", gt=0)
-    tags: list[str] = Field(description="List of tags")
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-generator = outlines.generate.json(model, Article)
-
-article = generator("Generate article about AI")
-print(article.title)
-print(article.word_count)  # Guaranteed > 0
-```
-
-#### Nested Models
-
-```python
-class Address(BaseModel):
-    street: str
-    city: str
-    country: str
-
-class Person(BaseModel):
-    name: str
-    age: int
-    address: Address  # Nested model
-
-generator = outlines.generate.json(model, Person)
-person = generator("Generate person in New York")
-
-print(person.address.city)  # "New York"
-```
-
-#### Enums and Literals
-
-```python
-from enum import Enum
+# Constrained choice — result is always one of the options
 from typing import Literal
+sentiment = model("Sentiment of 'This is amazing!': ",
+                  output_type=Literal["positive", "negative", "neutral"])
+print(sentiment)                                         # "positive"
 
-class Status(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-class Application(BaseModel):
-    applicant: str
-    status: Status  # Must be one of enum values
-    priority: Literal["low", "medium", "high"]  # Must be one of literals
-
-generator = outlines.generate.json(model, Application)
-app = generator("Generate application")
-
-print(app.status)  # Status.PENDING (or APPROVED/REJECTED)
+# Reusable, pre-compiled generator (compile the FSM once, reuse across prompts)
+generator = outlines.Generator(model, User)
+user = User.model_validate_json(generator("Extract user: Jane, 28, jane@x.com"))
 ```
 
-## Common Patterns
+## Output Types
 
-### Pattern 1: Data Extraction
+Generation is driven by the `output_type` passed to the model call (or to
+`outlines.Generator(model, output_type)`):
 
-```python
-from pydantic import BaseModel
-import outlines
+| `output_type=` | Constraint | Output |
+|----------------|-----------|--------|
+| Pydantic model or JSON Schema (str/dict) | schema | JSON string → `Model.model_validate_json()` |
+| `Literal[...]` or an `Enum` | fixed option set | one option |
+| `outlines.types.Regex(pattern)` | regex | matching string |
+| `int` / `float` | numeric type | numeric string |
+| omitted | none | free text |
 
-class CompanyInfo(BaseModel):
-    name: str
-    founded_year: int
-    industry: str
-    employees: int
+## Backends (summary)
 
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-generator = outlines.generate.json(model, CompanyInfo)
+| Backend | Loader (v1) | Best for |
+|---------|-------------|----------|
+| Transformers | `outlines.from_transformers(hf_model, hf_tokenizer)` | general local use |
+| llama.cpp | `outlines.from_llamacpp(Llama.from_pretrained(...))` | GGUF / CPU+GPU |
+| vLLM (offline) | `outlines.from_vllm_offline(LLM(id))` | batch / production throughput |
+| vLLM / SGLang (server) | `outlines.from_vllm(openai_client, id)` | OpenAI-compatible serving |
+| OpenAI | `outlines.from_openai(OpenAI())` | limited (no FSM features) |
 
-text = """
-Apple Inc. was founded in 1976 in the technology industry.
-The company employs approximately 164,000 people worldwide.
-"""
+Full per-backend configuration (device/dtype, GPU offload, quantization,
+multi-GPU, production deployment) is in `references/backends.md`.
 
-prompt = f"Extract company information:\n{text}\n\nCompany:"
-company = generator(prompt)
+## How It Works (core concept)
 
-print(f"Name: {company.name}")
-print(f"Founded: {company.founded_year}")
-print(f"Industry: {company.industry}")
-print(f"Employees: {company.employees}")
-```
+1. Schema (Pydantic / JSON Schema / regex) → context-free grammar (CFG).
+2. CFG → Finite State Machine (FSM), compiled once per schema and cached.
+3. At each step the FSM masks invalid tokens; deterministic paths fast-forward.
 
-### Pattern 2: Classification
+Result: valid-by-construction output, no post-hoc validation or retries, speed
+comparable to unconstrained generation.
 
-```python
-from typing import Literal
-import outlines
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-
-# Binary classification
-generator = outlines.generate.choice(model, ["spam", "not_spam"])
-result = generator("Email: Buy now! 50% off!")
-
-# Multi-class classification
-categories = ["technology", "business", "sports", "entertainment"]
-category_gen = outlines.generate.choice(model, categories)
-category = category_gen("Article: Apple announces new iPhone...")
-
-# With confidence
-class Classification(BaseModel):
-    label: Literal["positive", "negative", "neutral"]
-    confidence: float
-
-classifier = outlines.generate.json(model, Classification)
-result = classifier("Review: This product is okay, nothing special")
-```
-
-### Pattern 3: Structured Forms
-
-```python
-class UserProfile(BaseModel):
-    full_name: str
-    age: int
-    email: str
-    phone: str
-    country: str
-    interests: list[str]
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-generator = outlines.generate.json(model, UserProfile)
-
-prompt = """
-Extract user profile from:
-Name: Alice Johnson
-Age: 28
-Email: alice@example.com
-Phone: 555-0123
-Country: USA
-Interests: hiking, photography, cooking
-"""
-
-profile = generator(prompt)
-print(profile.full_name)
-print(profile.interests)  # ["hiking", "photography", "cooking"]
-```
-
-### Pattern 4: Multi-Entity Extraction
-
-```python
-class Entity(BaseModel):
-    name: str
-    type: Literal["PERSON", "ORGANIZATION", "LOCATION"]
-
-class DocumentEntities(BaseModel):
-    entities: list[Entity]
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-generator = outlines.generate.json(model, DocumentEntities)
-
-text = "Tim Cook met with Satya Nadella at Microsoft headquarters in Redmond."
-prompt = f"Extract entities from: {text}"
-
-result = generator(prompt)
-for entity in result.entities:
-    print(f"{entity.name} ({entity.type})")
-```
-
-### Pattern 5: Code Generation
-
-```python
-class PythonFunction(BaseModel):
-    function_name: str
-    parameters: list[str]
-    docstring: str
-    body: str
-
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-generator = outlines.generate.json(model, PythonFunction)
-
-prompt = "Generate a Python function to calculate factorial"
-func = generator(prompt)
-
-print(f"def {func.function_name}({', '.join(func.parameters)}):")
-print(f'    """{func.docstring}"""')
-print(f"    {func.body}")
-```
-
-### Pattern 6: Batch Processing
-
-```python
-def batch_extract(texts: list[str], schema: type[BaseModel]):
-    """Extract structured data from multiple texts."""
-    model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-    generator = outlines.generate.json(model, schema)
-
-    results = []
-    for text in texts:
-        result = generator(f"Extract from: {text}")
-        results.append(result)
-
-    return results
-
-class Person(BaseModel):
-    name: str
-    age: int
-
-texts = [
-    "John is 30 years old",
-    "Alice is 25 years old",
-    "Bob is 40 years old"
-]
-
-people = batch_extract(texts, Person)
-for person in people:
-    print(f"{person.name}: {person.age}")
-```
-
-## Backend Configuration
-
-### Transformers
-
-```python
-import outlines
-
-# Basic usage
-model = outlines.models.transformers("microsoft/Phi-3-mini-4k-instruct")
-
-# GPU configuration
-model = outlines.models.transformers(
-    "microsoft/Phi-3-mini-4k-instruct",
-    device="cuda",
-    model_kwargs={"torch_dtype": "float16"}
-)
-
-# Popular models
-model = outlines.models.transformers("meta-llama/Llama-3.1-8B-Instruct")
-model = outlines.models.transformers("mistralai/Mistral-7B-Instruct-v0.3")
-model = outlines.models.transformers("Qwen/Qwen2.5-7B-Instruct")
-```
-
-### llama.cpp
-
-```python
-# Load GGUF model
-model = outlines.models.llamacpp(
-    "./models/llama-3.1-8b.Q4_K_M.gguf",
-    n_ctx=4096,         # Context window
-    n_gpu_layers=35,    # GPU layers
-    n_threads=8         # CPU threads
-)
-
-# Full GPU offload
-model = outlines.models.llamacpp(
-    "./models/model.gguf",
-    n_gpu_layers=-1  # All layers on GPU
-)
-```
-
-### vLLM (Production)
-
-```python
-# Single GPU
-model = outlines.models.vllm("meta-llama/Llama-3.1-8B-Instruct")
-
-# Multi-GPU
-model = outlines.models.vllm(
-    "meta-llama/Llama-3.1-70B-Instruct",
-    tensor_parallel_size=4  # 4 GPUs
-)
-
-# With quantization
-model = outlines.models.vllm(
-    "meta-llama/Llama-3.1-8B-Instruct",
-    quantization="awq"  # Or "gptq"
-)
-```
-
-## Best Practices
-
-### 1. Use Specific Types
-
-```python
-# ✅ Good: Specific types
-class Product(BaseModel):
-    name: str
-    price: float  # Not str
-    quantity: int  # Not str
-    in_stock: bool  # Not str
-
-# ❌ Bad: Everything as string
-class Product(BaseModel):
-    name: str
-    price: str  # Should be float
-    quantity: str  # Should be int
-```
-
-### 2. Add Constraints
-
-```python
-from pydantic import Field
-
-# ✅ Good: With constraints
-class User(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-    age: int = Field(ge=0, le=120)
-    email: str = Field(pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
-
-# ❌ Bad: No constraints
-class User(BaseModel):
-    name: str
-    age: int
-    email: str
-```
-
-### 3. Use Enums for Categories
-
-```python
-# ✅ Good: Enum for fixed set
-class Priority(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-class Task(BaseModel):
-    title: str
-    priority: Priority
-
-# ❌ Bad: Free-form string
-class Task(BaseModel):
-    title: str
-    priority: str  # Can be anything
-```
-
-### 4. Provide Context in Prompts
-
-```python
-# ✅ Good: Clear context
-prompt = """
-Extract product information from the following text.
-Text: iPhone 15 Pro costs $999 and is currently in stock.
-Product:
-"""
-
-# ❌ Bad: Minimal context
-prompt = "iPhone 15 Pro costs $999 and is currently in stock."
-```
-
-### 5. Handle Optional Fields
-
-```python
-from typing import Optional
-
-# ✅ Good: Optional fields for incomplete data
-class Article(BaseModel):
-    title: str  # Required
-    author: Optional[str] = None  # Optional
-    date: Optional[str] = None  # Optional
-    tags: list[str] = []  # Default empty list
-
-# Can succeed even if author/date missing
-```
-
-## Comparison to Alternatives
+## Choosing Outlines vs. Alternatives
 
 | Feature | Outlines | Instructor | Guidance | LMQL |
 |---------|----------|------------|----------|------|
-| Pydantic Support | ✅ Native | ✅ Native | ❌ No | ❌ No |
-| JSON Schema | ✅ Yes | ✅ Yes | ⚠️ Limited | ✅ Yes |
-| Regex Constraints | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
-| Local Models | ✅ Full | ⚠️ Limited | ✅ Full | ✅ Full |
-| API Models | ⚠️ Limited | ✅ Full | ✅ Full | ✅ Full |
-| Zero Overhead | ✅ Yes | ❌ No | ⚠️ Partial | ✅ Yes |
-| Automatic Retrying | ❌ No | ✅ Yes | ❌ No | ❌ No |
-| Learning Curve | Low | Low | Low | High |
+| Pydantic support | Native | Native | No | No |
+| Regex constraints | Yes | No | Yes | Yes |
+| Local models | Full | Limited | Full | Full |
+| API models | Limited | Full | Full | Full |
+| Zero overhead | Yes | No | Partial | Yes |
+| Automatic retrying | No | Yes | No | No |
 
-**When to choose Outlines:**
-- Using local models (Transformers, llama.cpp, vLLM)
-- Need maximum inference speed
-- Want Pydantic model support
-- Require zero-overhead structured generation
-- Control token sampling process
+Pick Outlines for local models, max speed, and zero-overhead schema enforcement.
+Pick `instructor` (sibling skill) for API models with retries, `guidance` for
+token healing, `dspy` for prompt optimization.
 
-**When to choose alternatives:**
-- Instructor: Need API models with automatic retrying
-- Guidance: Need token healing and complex workflows
-- LMQL: Prefer declarative query syntax
+## References
 
-## Performance Characteristics
+> The reference files below currently document the **pre-1.0 (v0) API**
+> (`outlines.generate.*` / `outlines.models.*`). The concepts (schemas,
+> constraints, backend tuning) transfer directly; translate calls to the v1
+> form shown above (`outlines.from_*` + `output_type=`) when running on
+> `outlines>=1.0`.
 
-**Speed:**
-- **Zero overhead**: Structured generation as fast as unconstrained
-- **Fast-forward optimization**: Skips deterministic tokens
-- **1.2-2x faster** than post-generation validation approaches
-
-**Memory:**
-- FSM compiled once per schema (cached)
-- Minimal runtime overhead
-- Efficient with vLLM for high throughput
-
-**Accuracy:**
-- **100% valid outputs** (guaranteed by FSM)
-- No retry loops needed
-- Deterministic token filtering
+- `references/json_generation.md` — Pydantic models, JSON Schema, nested/complex
+  types, constraints, optional fields, validation, performance.
+- `references/backends.md` — Transformers, llama.cpp, vLLM, OpenAI: full
+  configuration, quantization, multi-GPU, production deployment.
+- `references/examples.md` — production-ready patterns: data extraction,
+  classification, form processing, multi-entity extraction, code generation,
+  batch processing.
 
 ## Resources
 
-- **Documentation**: https://outlines-dev.github.io/outlines
-- **GitHub**: https://github.com/outlines-dev/outlines (8k+ stars)
-- **Discord**: https://discord.gg/R9DSu34mGd
-- **Blog**: https://blog.dottxt.co
-
-## See Also
-
-- `references/json_generation.md` - Comprehensive JSON and Pydantic patterns
-- `references/backends.md` - Backend-specific configuration
-- `references/examples.md` - Production-ready examples
-
-
+- Docs: https://dottxt-ai.github.io/outlines/
+- GitHub: https://github.com/dottxt-ai/outlines
+- Blog: https://blog.dottxt.co

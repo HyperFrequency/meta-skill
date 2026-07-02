@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-knowledge-rag-control-plane
+version: 0.1.0
 description: >
   Control plane for the neuro-quant monorepo's knowledge / RAG substrate. Routes work
   across neuro-link (MCP/RAG server, vault health, auto-RAG hook, task queue), qmd

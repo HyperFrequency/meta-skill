@@ -1,6 +1,7 @@
 ---
 name: cmux-debugging
-description: "Debug logging, Debug menu, runtime pitfalls, typing-latency-sensitive paths, SwiftUI list snapshot boundaries, OS-version repros, and local visual iteration for cmux. Use when adding debug probes, diagnosing UI/runtime issues, touching terminal rendering, tab/sidebar list views, drag/drop UTTypes, or using the Debug menu."
+version: 0.1.0
+description: "Debug logging, Debug menu, runtime pitfalls, typing-latency-sensitive paths, SwiftUI list snapshot boundaries, OS-version repros, and local visual iteration for cmux. Use when adding debug probes, diagnosing UI/runtime issues, touching terminal rendering, tab/sidebar list views, drag/drop UTTypes, or using the Debug menu. Do not use for feature implementation or non-debugging cmux code changes."
 ---
 
 # cmux Debugging

@@ -1,5 +1,6 @@
 ---
 name: sentiment-analysis-nlp
+version: 0.1.0
 description: Sentiment scoring for financial text (news headlines, tweets, earnings transcripts, 10-K filings). Primary path uses Hugging Face `transformers` with a finance-tuned classifier (ProsusAI/finbert, yiyanghkust/finbert-tone). Fallback path uses VADER (`vaderSentiment`) — a rule/lexicon-based scorer — for lightweight, no-GPU, no-model-download cases. Use when you need polarity / tone features for downstream alpha or risk models. Not a replacement for full event extraction or entity-level sentiment; for those, combine with NER.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: MIT

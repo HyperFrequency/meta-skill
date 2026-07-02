@@ -2,6 +2,11 @@
 
 Real-world examples of using Outlines for structured generation in production systems.
 
+> API version: examples use the pre-1.0 (v0) API. On `outlines>=1.0`, load with
+> `outlines.from_transformers(...)` and call `model(prompt, output_type=Schema)`
+> (validate JSON with `Schema.model_validate_json(result)`) instead of the
+> `outlines.generate.*` helpers shown below.
+
 ## Table of Contents
 - Data Extraction
 - Classification Systems

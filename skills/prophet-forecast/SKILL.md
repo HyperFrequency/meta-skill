@@ -1,6 +1,7 @@
 ---
 name: prophet-forecast
-description: Meta Prophet for additive trend + multi-seasonality + holiday-aware time series forecasting. Trigger on phrases like "fit Prophet", "Facebook Prophet", "seasonal forecast with holidays", "weekly + yearly seasonality forecast", "add holiday effects", "Prophet cross_validation", "prophet uncertainty intervals", or when the user has daily/weekly business-style series with strong calendar effects. Use as a robust seasonal baseline. For deeper RNN / transformer models see `lstm-forecast` / `transformer-forecast`. For pure stochastic-process models see `arima-forecast`.
+version: 0.1.0
+description: Meta Prophet for additive trend + multi-seasonality + holiday-aware time series forecasting. Trigger on phrases like "fit Prophet", "Facebook Prophet", "seasonal forecast with holidays", "weekly + yearly seasonality forecast", "add holiday effects", "Prophet cross_validation", "prophet uncertainty intervals", or when the user has daily/weekly business-style series with strong calendar effects. Use as a robust seasonal baseline. For deeper RNN / transformer models see `lstm-forecast` / `transformer-forecast`. For pure stochastic-process models see `arima-forecast`. Not for sub-daily tick data or regime-switching series — use LSTM or ARIMA instead.
 license: MIT
 metadata:
     skill-author: HyperFrequency

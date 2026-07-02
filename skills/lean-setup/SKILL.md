@@ -1,9 +1,16 @@
 ---
 name: lean-setup
-description: Set up a lean4 repository clone with proper elan toolchains. 
+version: 0.1.0
+description: Set up a freshly cloned leanprover/lean4 source repository so it can be built and tested - run the first-time cmake preset + make bootstrap, run/write the test suite, and (for interactive work) link stage0/stage1 elan toolchains so `lean`/`lake` resolve to the local clone. Use WHEN you have just cloned or are repairing a lean4 source checkout and need it buildable, when `cmake --preset release` has never been run, or when a user needs to work interactively against their own lean4 build. Do NOT use for subsequent incremental builds (the cmake step is one-time; just rerun `make -C build/release`), for installing a released Lean toolchain via elan (use `elan toolchain install` directly), for Mathlib or other downstream lake projects (see mathlib-build), or for proving/PR/MWE/bisect tasks (see lean-proof, lean-pr, lean-mwe, lean-bisect).
 ---
 
 # Lean 4 Repository Setup
+
+## Prerequisites
+
+A source build needs: a C++14-capable compiler (clang or gcc), CMake, GMP, libuv, and OpenSSL. Install `elan` if you want the interactive toolchain linking below, and `ccache` (optional) — the build uses it automatically to skip redundant recompiles. Platform setup guides live in `doc/make/` of the clone (Ubuntu, msys2, WSL, macOS/homebrew, or `nix develop`).
+
+## First build
 
 The first time you build in a lean4 repository clone, you need to run
 ```
@@ -11,7 +18,7 @@ cmake --preset release
 make -j -C build/release
 ```
 
-The `cmake` command is not needed on subsequent builds.
+The `cmake` command is not needed on subsequent builds — just rerun `make -j -C build/release`. For iterative source work, `cmake --preset dev-release` reuses the same `build/release` directory; `debug` and `sandebug` presets also exist.
 
 ## Tests
 

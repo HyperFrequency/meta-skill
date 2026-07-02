@@ -1,14 +1,17 @@
 ---
-name: auto-discovery
-description: Discover non-obvious cross-domain connections through random sampling and pattern analysis
+name: cornelius-auto-discovery
+version: 0.1.0
+description: Autonomously hunt for non-obvious, cross-domain connections in an Obsidian "Brain" vault by sampling notes from diverse thematic clusters and surfacing pairs with low semantic similarity (0.50-0.70) but high conceptual strength, then logging them to changelogs. Use when the user wants to mine a personal knowledge base for hidden links, "find surprising connections", "discover cross-domain patterns", run a serendipity/consilience pass over notes, or when invoked on its weekly autonomous schedule. Requires a local-brain-search index (run /refresh-index first). Do NOT use for ordinary semantic search or "find notes about X" (the index already does that), for building a knowledge graph from arbitrary text (use infranodus), for finding similar/duplicate notes, or on codebases rather than a notes vault.
 automation: autonomous
 schedule: "0 20 * * 0"
 allowed-tools: Read, Write, Grep, Glob, Bash
 ---
 
-# Auto-Discovery
+# Cornelius Auto-Discovery
 
 Autonomous cross-domain connection hunter. Samples notes from different thematic clusters and finds meaningful relationships that semantic similarity alone would miss.
+
+> **Assumed vault layout.** This skill is hardcoded to an Obsidian vault rooted at `Brain/` with the subfolders listed under [State Dependencies](#state-dependencies) and a `resources/local-brain-search/` helper that exposes `run_search.sh` / `run_connections.sh`. If your vault uses different paths, adjust the commands below to match before running.
 
 ## Purpose
 

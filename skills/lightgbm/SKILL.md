@@ -1,6 +1,8 @@
 ---
 name: lightgbm
-description: LightGBM gradient-boosted decision trees for tabular price-direction classification and return regression. Use when the user asks to "train a LightGBM model", "predict direction with LGBM", "use LGBMClassifier / LGBMRegressor", needs the fastest GBM on CPU, or has hundreds–thousands of features. Covers the scikit-learn estimator API, leaf-wise growth, native categorical handling (`categorical_feature=`), `device_type="cuda"`/`"gpu"` training, the `early_stopping` callback, and Optuna tuning.
+version: 0.1.0
+description: >-
+    LightGBM gradient-boosted decision trees for tabular price-direction classification and return regression. Use when the user asks to "train a LightGBM model", "predict direction with LGBM", "use LGBMClassifier / LGBMRegressor", needs the fastest GBM on CPU, or has hundreds–thousands of features. Covers the scikit-learn estimator API, leaf-wise growth, native categorical handling (`categorical_feature=`), `device_type="cuda"`/`"gpu"` training, the `early_stopping` callback, and Optuna tuning. NOT for: deep-learning / sequence models (use pytorch-lightning or transformers); heavy string-categorical or time-ordered data (prefer the catboost skill); broadest GPU / SHAP / ONNX / MLflow ecosystem needs or the most universal GPU build (prefer the xgboost skill); explaining a trained model's predictions (use the shap skill); datasets under ~5k rows where leaf-wise growth overfits (prefer xgboost / catboost).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: MIT
 metadata:
@@ -186,48 +188,9 @@ Access trained internals via `clf.best_iteration_`, `clf.feature_importances_`, 
 
 ## Hyperparameter Tuning — Optuna
 
-```python
-import optuna
-import lightgbm as lgb
-import numpy as np
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import log_loss
-
-def objective(trial):
-    params = dict(
-        objective="binary",
-        n_estimators=3000,
-        learning_rate=trial.suggest_float("learning_rate", 1e-3, 0.2, log=True),
-        num_leaves=trial.suggest_int("num_leaves", 15, 255, log=True),
-        min_child_samples=trial.suggest_int("min_child_samples", 5, 200, log=True),
-        subsample=trial.suggest_float("subsample", 0.5, 1.0),
-        subsample_freq=trial.suggest_int("subsample_freq", 0, 10),
-        colsample_bytree=trial.suggest_float("colsample_bytree", 0.5, 1.0),
-        reg_alpha=trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
-        reg_lambda=trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
-        min_split_gain=trial.suggest_float("min_split_gain", 1e-8, 1.0, log=True),
-        random_state=42,
-        n_jobs=-1,
-        verbose=-1,
-    )
-    cv = TimeSeriesSplit(n_splits=5)
-    scores = []
-    for tr, va in cv.split(X):
-        clf = lgb.LGBMClassifier(**params)
-        clf.fit(
-            X.iloc[tr], y.iloc[tr],
-            eval_set=[(X.iloc[va], y.iloc[va])],
-            callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)],
-        )
-        scores.append(log_loss(y.iloc[va], clf.predict_proba(X.iloc[va])[:, 1]))
-    return float(np.mean(scores))
-
-study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=50, show_progress_bar=True)
-print(study.best_params)
-```
-
-`optuna.integration.LightGBMPruningCallback` also exists if you want to prune unpromising trials mid-training.
+Walk-forward (`TimeSeriesSplit`) Optuna objective over the full search space, plus the
+`LightGBMPruningCallback` and `LightGBMTuner` options: see
+[`references/tuning.md`](references/tuning.md).
 
 ## Common Pitfalls
 
@@ -243,53 +206,18 @@ print(study.best_params)
 
 6. **Small data + leaf-wise growth = overfit** — under ~5k rows, LightGBM can fit noise faster than XGBoost. Use small `num_leaves` (≤31), large `min_child_samples` (≥50), and aggressive `min_split_gain`. Or just pick XGBoost / CatBoost for small datasets.
 
-## Cross-Comparison: LightGBM vs. XGBoost vs. CatBoost
+## Cross-Comparison & Sibling Skills
 
-| Dimension | LightGBM | XGBoost | CatBoost |
-|---|---|---|---|
-| **Tree growth** | Leaf-wise (best-first) — fewer trees per unit accuracy | Level-wise depth-first | Symmetric / oblivious trees — very fast inference |
-| **Speed (CPU)** | Fastest | Fast | Slowest of the three |
-| **Categorical handling** | Native via `categorical_feature=` (int-encoded) | Native via `enable_categorical=True` (pandas category dtype) | Best-in-class — native strings, learned target/CTR encodings |
-| **Missing values** | Per-split direction (`use_missing=true`) | Per-split direction | Treated as a distinct category/value |
-| **GPU build** | OpenCL (`gpu`) or CUDA (`cuda`, source build) | CUDA wheel out of the box | CUDA wheel out of the box |
-| **Distributed training** | Most mature (MPI, Dask, Ray) | Mature (Dask, Spark) | Less mature |
-| **Time-series specific** | None built-in | None built-in | `has_time=True`, `TimeSeries` CV fold type |
-| **Default win condition** | Many features + speed-critical | Broad baseline + ecosystem | Heavy categorical / time-ordered data |
+Full LightGBM vs. XGBoost vs. CatBoost decision table (tree growth, CPU speed,
+categorical handling, GPU builds, distributed training, time-series support) plus when
+to reach for a sibling: see [`references/comparison.md`](references/comparison.md).
+
+Quick routing:
+- **XGBoost** (`../xgboost/SKILL.md`) — broadest ecosystem (SHAP/ONNX/MLflow), most universal GPU build.
+- **CatBoost** (`../catboost/SKILL.md`) — strongest defaults, best categorical handling, `has_time` ordering.
 
 ## References
 
-### Primary library
-- [microsoft/LightGBM](https://github.com/microsoft/LightGBM) — upstream repo (issues, releases, C++ / Python / R / CLI all live here)
-- [LightGBM docs (latest)](https://lightgbm.readthedocs.io/en/latest/) — cross-checked against the latest channel
-- [Installation guide](https://lightgbm.readthedocs.io/en/latest/Installation-Guide.html) — covers wheel install, OpenCL GPU build, CUDA build, MPI build
-- [`examples/` directory](https://github.com/microsoft/LightGBM/tree/master/examples) — runnable Python / R / C / CLI examples
-- [Release notes](https://github.com/microsoft/LightGBM/releases) — read before pinning across 3.x → 4.x (categorical handling defaults shifted)
-
-### Deep-dive docs (specific pages worth bookmarking)
-- [Python API reference](https://lightgbm.readthedocs.io/en/latest/Python-API.html) — `Dataset`, `train`, `Booster`, callbacks, plotting
-- [Python intro tutorial](https://lightgbm.readthedocs.io/en/latest/Python-Intro.html) — minimal working pattern (train/eval/predict)
-- [sklearn API (`LGBMClassifier`, `LGBMRegressor`, `LGBMRanker`)](https://lightgbm.readthedocs.io/en/latest/Python-API.html#scikit-learn-api) — the API most production code uses
-- [Parameters reference](https://lightgbm.readthedocs.io/en/latest/Parameters.html) — exhaustive list (`num_leaves`, `min_data_in_leaf`, `feature_fraction`, `bagging_fraction`, etc.)
-- [Parameters tuning guide](https://lightgbm.readthedocs.io/en/latest/Parameters-Tuning.html) — practical advice — "better accuracy" / "faster speed" / "deal with over-fitting" branches
-- [GPU tutorial](https://lightgbm.readthedocs.io/en/latest/GPU-Tutorial.html) — OpenCL GPU build; covers per-board tuning
-- [CUDA build](https://lightgbm.readthedocs.io/en/latest/GPU-Performance.html) — `device_type=cuda` separate from OpenCL; better on modern NVIDIA boards
-- [Distributed Learning](https://lightgbm.readthedocs.io/en/latest/Parallel-Learning-Guide.html) — feature/data/voting parallel via MPI, Dask, Spark, Ray
-- [Advanced Topics](https://lightgbm.readthedocs.io/en/latest/Advanced-Topics.html) — categorical-feature handling, monotonic / interaction constraints, custom objective, missing-value semantics
-- [Features overview](https://lightgbm.readthedocs.io/en/latest/Features.html) — leaf-wise (vs level-wise) tree growth, GOSS, EFB — the algorithmic choices that distinguish it from XGBoost
-
-### Adjacent / alternative libraries
-- `xgboost` — see [`xgboost` skill](../xgboost/SKILL.md) — broader ecosystem, more mature distributed story
-- `catboost` — see [`catboost` skill](../catboost/SKILL.md) — strongest defaults, best categorical handling, symmetric-tree predictor is fastest at inference
-- [scikit-learn `HistGradientBoostingClassifier` / `Regressor`](https://scikit-learn.org/stable/modules/ensemble.html#histogram-based-gradient-boosting) — inspired by LightGBM, no extra install
-- [`treelite`](https://github.com/dmlc/treelite) — compile LightGBM trees to native code for low-latency serving
-
-### Academic papers
-- Ke, G., Meng, Q., Finley, T. et al. (2017). "LightGBM: A Highly Efficient Gradient Boosting Decision Tree." *NeurIPS 2017*. [paper PDF](https://proceedings.neurips.cc/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf) — the original paper; introduces GOSS (gradient-based one-side sampling) and EFB (exclusive feature bundling), the two reasons LightGBM beats vanilla GBDT on speed
-- Friedman, J. H. (2001). "Greedy Function Approximation: A Gradient Boosting Machine." *Annals of Statistics* 29(5), 1189–1232. [doi:10.1214/aos/1013203451](https://doi.org/10.1214/aos/1013203451) — the GBM foundation
-
-### Tutorials & write-ups
-- [Microsoft Research blog on GOSS + EFB](https://www.microsoft.com/en-us/research/blog/lightgbm-3-now-available/) — accessible summary of the speed claims
-- [LightGBM in Kaggle Learn](https://www.kaggle.com/learn/intermediate-machine-learning) — practical tuning patterns common in Kaggle quant comps
-
-### Last cross-checked
-2026-05-20 — via Context7 `/lightgbm-org/lightgbm` + upstream docs at `lightgbm.readthedocs.io/en/latest/`; Auggie not indexed for this repo.
+Upstream docs, deep-dive pages, adjacent libraries, academic papers, and the
+last-cross-checked provenance are collected in
+[`references/resources.md`](references/resources.md).

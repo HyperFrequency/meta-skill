@@ -1,6 +1,6 @@
 ---
-name: mamba-architecture
-description: State-space model with O(n) complexity vs Transformers' O(n²). 5× faster inference, million-token sequences, no KV cache. Selective SSM with hardware-aware design. Mamba-1 (d_state=16) and Mamba-2 (d_state=128, multi-head). Models 130M-2.8B on HuggingFace.
+name: mamba
+description: Selective state-space model (SSM) architecture with O(n) linear complexity vs Transformers' O(n²); ~5× faster autoregressive inference, no KV cache, constant memory per token. Covers Mamba-1 (d_state=16) and Mamba-2 (d_state=128, multi-head), the mamba-ssm package, and pretrained state-spaces models (130M-2.8B). USE WHEN building, fine-tuning, or serving long-context (100K+ token) sequence models, streaming/low-memory inference, or comparing SSMs to attention. NOT FOR short-context tasks where Transformers win on quality, RNN-Transformer hybrids (use RWKV), retention networks (RetNet), or long-convolution models (Hyena); not a trading/backtest skill.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -48,127 +48,22 @@ assert y.shape == x.shape
 
 ## Common workflows
 
-### Workflow 1: Language model with Mamba-2
+Full runnable code for each lives in
+[references/usage-examples.md](references/usage-examples.md). Summary:
 
-**Complete LM with generation**:
-```python
-from mamba_ssm.models.mixer_seq_simple import MambaLMHeadModel
-from mamba_ssm.models.config_mamba import MambaConfig
-import torch
-
-# Configure Mamba-2 LM
-config = MambaConfig(
-    d_model=1024,           # Hidden dimension
-    n_layer=24,             # Number of layers
-    vocab_size=50277,       # Vocabulary size
-    ssm_cfg=dict(
-        layer="Mamba2",     # Use Mamba-2
-        d_state=128,        # Larger state for Mamba-2
-        headdim=64,         # Head dimension
-        ngroups=1           # Number of groups
-    )
-)
-
-model = MambaLMHeadModel(config, device="cuda", dtype=torch.float16)
-
-# Generate text
-input_ids = torch.randint(0, 1000, (1, 20), device="cuda", dtype=torch.long)
-output = model.generate(
-    input_ids=input_ids,
-    max_length=100,
-    temperature=0.7,
-    top_p=0.9
-)
-```
-
-### Workflow 2: Use pretrained Mamba models
-
-**Load from HuggingFace**:
-```python
-from transformers import AutoTokenizer
-from mamba_ssm.models.mixer_seq_simple import MambaLMHeadModel
-
-# Load pretrained model
-model_name = "state-spaces/mamba-2.8b"
-tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")  # Use compatible tokenizer
-model = MambaLMHeadModel.from_pretrained(model_name, device="cuda", dtype=torch.float16)
-
-# Generate
-prompt = "The future of AI is"
-input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to("cuda")
-output_ids = model.generate(
-    input_ids=input_ids,
-    max_length=200,
-    temperature=0.7,
-    top_p=0.9,
-    repetition_penalty=1.2
-)
-generated_text = tokenizer.decode(output_ids[0])
-print(generated_text)
-```
-
-**Available models**:
-- `state-spaces/mamba-130m`
-- `state-spaces/mamba-370m`
-- `state-spaces/mamba-790m`
-- `state-spaces/mamba-1.4b`
-- `state-spaces/mamba-2.8b`
-
-### Workflow 3: Mamba-1 vs Mamba-2
-
-**Mamba-1** (smaller state):
-```python
-from mamba_ssm import Mamba
-
-model = Mamba(
-    d_model=256,
-    d_state=16,      # Smaller state dimension
-    d_conv=4,
-    expand=2
-).to("cuda")
-```
-
-**Mamba-2** (multi-head, larger state):
-```python
-from mamba_ssm import Mamba2
-
-model = Mamba2(
-    d_model=256,
-    d_state=128,     # Larger state dimension
-    d_conv=4,
-    expand=2,
-    headdim=64,      # Head dimension for multi-head
-    ngroups=1        # Parallel groups
-).to("cuda")
-```
-
-**Key differences**:
-- **State size**: Mamba-1 (d_state=16) vs Mamba-2 (d_state=128)
-- **Architecture**: Mamba-2 has multi-head structure
-- **Normalization**: Mamba-2 uses RMSNorm
-- **Distributed**: Mamba-2 supports tensor parallelism
-
-### Workflow 4: Benchmark vs Transformers
-
-**Generation speed comparison**:
-```bash
-# Benchmark Mamba
-python benchmarks/benchmark_generation_mamba_simple.py \
-  --model-name "state-spaces/mamba-2.8b" \
-  --prompt "The future of machine learning is" \
-  --topp 0.9 --temperature 0.7 --repetition-penalty 1.2
-
-# Benchmark Transformer
-python benchmarks/benchmark_generation_mamba_simple.py \
-  --model-name "EleutherAI/pythia-2.8b" \
-  --prompt "The future of machine learning is" \
-  --topp 0.9 --temperature 0.7 --repetition-penalty 1.2
-```
-
-**Expected results**:
-- **Mamba**: 5× faster inference
-- **Memory**: No KV cache needed
-- **Scaling**: Linear with sequence length
+- **Build a Mamba-2 LM + generate** — `MambaLMHeadModel(MambaConfig(...,
+  ssm_cfg=dict(layer="Mamba2", d_state=128, headdim=64)))`, then `model.generate(...)`.
+- **Load pretrained** — `MambaLMHeadModel.from_pretrained("state-spaces/mamba-2.8b")`
+  (NOT HF `AutoModel`); pair with the GPT-NeoX tokenizer
+  (`EleutherAI/gpt-neox-20b`). Sizes: 130m / 370m / 790m / 1.4b / 2.8b.
+- **Mamba-1 vs Mamba-2 block** — `Mamba(d_state=16)` vs `Mamba2(d_state=128,
+  headdim=64, ngroups=1)`; Mamba-2 adds multi-head structure, RMSNorm, and
+  tensor parallelism.
+- **Benchmark vs Transformers** — run the repo's
+  `benchmarks/benchmark_generation_mamba_simple.py` comparing
+  `state-spaces/mamba-2.8b` vs `EleutherAI/pythia-2.8b` with matched
+  `--topp/--temperature/--repetition-penalty`; speedup grows with sequence
+  length. Measured numbers in [references/benchmarks.md](references/benchmarks.md).
 
 ## When to use vs alternatives
 
@@ -226,11 +121,9 @@ model = MambaLMHeadModel.from_pretrained("state-spaces/mamba-2.8b")
 
 ## Advanced topics
 
-**Selective SSM**: See [references/selective-ssm.md](references/selective-ssm.md) for mathematical formulation, state-space equations, and how selectivity enables O(n) complexity.
-
-**Mamba-2 architecture**: See [references/mamba2-details.md](references/mamba2-details.md) for multi-head structure, tensor parallelism, and distributed training setup.
-
-**Performance optimization**: See [references/performance.md](references/performance.md) for hardware-aware design, CUDA kernels, and memory efficiency techniques.
+- **Architecture & selective SSM**: [references/architecture-details.md](references/architecture-details.md) — S6 mechanism, state-space equations, Mamba-2 multi-head structure, and how selectivity enables O(n) complexity.
+- **Benchmarks & performance**: [references/benchmarks.md](references/benchmarks.md) — measured throughput/latency vs Transformers across sequence lengths, memory profile, hardware-aware design.
+- **Training**: [references/training-guide.md](references/training-guide.md) — from-scratch setup, training loop, and distributed/tensor-parallel notes.
 
 ## Hardware requirements
 
@@ -241,13 +134,9 @@ model = MambaLMHeadModel.from_pretrained("state-spaces/mamba-2.8b")
   - 790M model: 8GB
   - 1.4B model: 14GB
   - 2.8B model: 28GB (FP16)
-- **Inference**: 5× faster than Transformers
-- **Memory**: No KV cache (lower than Transformers)
 
-**Performance** (vs Transformers):
-- **Speed**: 5× faster inference
-- **Memory**: 50% less (no KV cache)
-- **Scaling**: Linear vs quadratic
+See [references/benchmarks.md](references/benchmarks.md) for measured speed/memory
+gains vs Transformers across sequence lengths.
 
 ## Resources
 

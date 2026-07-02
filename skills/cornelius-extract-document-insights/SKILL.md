@@ -1,6 +1,7 @@
 ---
-name: extract-document-insights
-description: Extract insights from external documents (research papers, books, articles). Spawns document-insight-extractor subagent. Requires session name.
+name: cornelius-extract-document-insights
+version: 0.1.0
+description: Extract insights from external documents (research papers, books, articles). Spawns document-insight-extractor subagent. Requires session name. NOT for personal content or conversation transcripts—use `/extract-insights` instead.
 allowed-tools: [Task]
 user-invocable: true
 arg-description: "<session name> <file path or content description>"

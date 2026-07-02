@@ -1,5 +1,6 @@
 ---
 name: neuro-quant-market-research-runtime
+version: 0.1.0
 description: >
   Validates market hypotheses with runtime evidence across vectorbt.pro,
   hftbacktest, hftbacktest_cpp, quantstats, and pandas-ta BEFORE any execution

@@ -72,7 +72,7 @@ base_image = modal.Image.debian_slim().pip_install("torch", "numpy", "scipy")
 ml_image = base_image.pip_install("transformers", "datasets", "accelerate")
 
 # Stage 3: Custom code (rebuilt on changes)
-final_image = ml_image.copy_local_dir("./src", "/app/src")
+final_image = ml_image.add_local_dir("./src", "/app/src")   # formerly copy_local_dir
 ```
 
 ### Custom Dockerfiles
@@ -125,9 +125,9 @@ class InferenceService:
 ```python
 @app.cls(
     gpu="A100",
-    allow_concurrent_inputs=20,  # Handle 20 requests per container
-    container_idle_timeout=300
+    scaledown_window=300,        # keep warm 5 min (formerly container_idle_timeout)
 )
+@modal.concurrent(max_inputs=20)  # 20 concurrent inputs per container (formerly allow_concurrent_inputs)
 class BatchInference:
     @modal.enter()
     def load(self):
@@ -145,7 +145,8 @@ class BatchInference:
 
 ```python
 # Input concurrency - good for I/O-bound
-@app.function(allow_concurrent_inputs=10)
+@app.function()
+@modal.concurrent(max_inputs=10)
 async def fetch_data(url: str):
     async with aiohttp.ClientSession() as session:
         return await session.get(url)
@@ -357,7 +358,7 @@ def on_demand():
     pass
 
 # Keep containers warm for low latency (costs more)
-@app.function(gpu="A100", keep_warm=1)
+@app.function(gpu="A100", min_containers=1)  # formerly keep_warm
 def always_ready():
     pass
 ```
@@ -452,7 +453,7 @@ Modal automatically handles zero-downtime deployments:
 
 ```python
 @app.function()
-@modal.web_endpoint()
+@modal.fastapi_endpoint()
 def health():
     return {
         "status": "healthy",
@@ -489,7 +490,7 @@ def run_sandbox():
 # Call deployed function from any Python script
 import modal
 
-f = modal.Function.lookup("my-app", "my_function")
+f = modal.Function.from_name("my-app", "my_function")  # replaces Function.lookup
 result = f.remote(arg1, arg2)
 ```
 

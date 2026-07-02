@@ -1,6 +1,7 @@
 ---
-name: brain-merge
-description: Compare and selectively merge Brain directories across any two agent instances. Supports diff (see what's unique where), pull (import from another brain), and learn (bidirectional exchange).
+name: cornelius-brain-merge
+version: 0.1.0
+description: Compare and selectively merge Brain knowledge directories across any two agent instances. Supports diff (see what's unique where), pull (import from another brain into yours), and learn (bidirectional exchange with per-direction approval); refreshes each agent's FAISS index after changes. Use WHEN the user wants to reconcile, sync, or transfer notes/insights between two agent Brain folders, see what one brain has that another lacks, or seed a new agent from an existing one. Use WHEN they name two brains ("merge moltbook into mine", "what's unique in the other brain", "pull its notes"). Do NOT use for git/branch merges, file-level diff/merge of source code, merging whole repositories (use repo-merge), single-brain edits, or vector-DB tuning — this only moves markdown files between Brain dirs and rebuilds the local search index.
 automation: gated
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Agent]
 user-invocable: true
@@ -42,6 +43,22 @@ If paths are ambiguous (user says "moltbook" or "the other one"), scan parent di
 ```bash
 find . -maxdepth 3 -name "Brain" -type d 2>/dev/null | sort
 ```
+
+#### Pre-flight integrity checks
+
+Before any compare or copy, validate both brains. Abort and report if a check fails — never merge into or out of a malformed brain.
+
+```bash
+for B in "$SOURCE" "$TARGET"; do
+  [ -d "$B" ]            || { echo "MISSING: $B is not a directory"; exit 1; }
+  [ -r "$B" ]           || { echo "UNREADABLE: $B"; exit 1; }
+  [ -n "$(find "$B" -name '*.md' -print -quit)" ] \
+                        || echo "WARN: $B has no .md files (empty/wrong path?)"
+done
+[ -w "$TARGET" ]        || { echo "READ-ONLY target: $TARGET"; exit 1; }
+```
+
+Also confirm source and target are not the same path (a self-merge is a no-op) and that target is not a subdirectory of source (rsync into a parent can recurse). If either holds, stop and re-confirm paths with the user.
 
 ---
 
@@ -196,5 +213,5 @@ After completing this skill's primary task, consider tactical improvements:
   - [ ] Edit this SKILL.md with the specific improvement
   - [ ] Keep changes minimal and focused
 - [ ] **Version control**:
-  - [ ] Stage: `git add .claude/skills/brain-merge/SKILL.md`
-  - [ ] Commit: `git commit -m "refactor(brain-merge): <brief improvement description>"`
+  - [ ] Stage: `git add .claude/skills/cornelius-brain-merge/SKILL.md`
+  - [ ] Commit: `git commit -m "refactor(cornelius-brain-merge): <brief improvement description>"`

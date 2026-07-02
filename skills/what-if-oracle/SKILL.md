@@ -1,6 +1,7 @@
 ---
 name: what-if-oracle
-description: Run structured What-If scenario analysis with 4–6 branch possibility exploration (best, likely, worst, wild card, contrarian, second-order). Use when the user asks speculative what-if questions about uncertain futures, strategic forks, contingency planning, or stress-testing a decision before committing.
+version: 0.1.0
+description: Run structured What-If scenario analysis with 4–6 branch possibility exploration (best, likely, worst, wild card, contrarian, second-order). Use when the user asks speculative what-if questions about uncertain futures, strategic forks, contingency planning, or stress-testing a decision before committing. Do not use for backtesting historical outcomes or live market predictions—use market-oracle for trading scenarios instead.
 license: CC BY-NC-SA 4.0
 metadata: {"version": "1.1", "skill-author": "AHK Strategies (ashrafkahoush-ux)", "upstream": "https://github.com/ashrafkahoush-ux/claude-consciousness-skills", "research-doi": "10.5281/zenodo.18736841, 10.5281/zenodo.18807387"}
 ---

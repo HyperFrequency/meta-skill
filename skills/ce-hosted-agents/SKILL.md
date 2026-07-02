@@ -1,6 +1,7 @@
 ---
-name: hosted-agents
-description: "This skill should be used when designing hosted or background agent infrastructure: sandboxed execution, remote coding environments, warm pools, session persistence, multiplayer collaboration, self-spawning agents, or Modal-style sandboxes."
+name: ce-hosted-agents
+version: 0.1.0
+description: "This skill should be used when designing hosted or background agent infrastructure: sandboxed execution, remote coding environments, warm pools, session persistence, multiplayer collaboration, self-spawning agents, or Modal-style sandboxes. Not for designing agent loops, supervisor patterns, or tools used by agents—use `harness-engineering`, `multi-agent-patterns`, `tool-design`, or `filesystem-context` instead."
 ---
 
 # Hosted Agent Infrastructure

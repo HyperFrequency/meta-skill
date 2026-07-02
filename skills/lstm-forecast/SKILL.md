@@ -1,6 +1,7 @@
 ---
 name: lstm-forecast
-description: LSTM (long short-term memory) forecasting for univariate or multivariate price/return time series, using either Keras 3 (TensorFlow/JAX/PyTorch backends) or plain PyTorch nn.LSTM / nn.LSTMCell. Trigger on phrases like "fit an LSTM to this series", "next-day price LSTM", "sequence model forecast", "Keras 3 LSTM example", "PyTorch LSTM forecast", "predict the next N steps with a recurrent net". Use when the user wants a deep recurrent baseline before reaching for transformers or foundation models. For Transformer / TFT see `transformer-forecast`; for classical models see `arima-forecast` / `prophet-forecast`.
+version: 0.1.0
+description: LSTM (long short-term memory) forecasting for univariate or multivariate price/return time series, using either Keras 3 (TensorFlow/JAX/PyTorch backends) or plain PyTorch nn.LSTM / nn.LSTMCell. Trigger on phrases like "fit an LSTM to this series", "next-day price LSTM", "sequence model forecast", "Keras 3 LSTM example", "PyTorch LSTM forecast", "predict the next N steps with a recurrent net". Use when the user wants a deep recurrent baseline before reaching for transformers or foundation models. For Transformer / TFT see `transformer-forecast`; for classical models see `arima-forecast` / `prophet-forecast`. Not for attention-based or probabilistic forecasts — use `transformer-forecast` for those.
 license: Apache-2.0 (Keras), BSD-3-Clause (PyTorch)
 metadata:
     skill-author: HyperFrequency

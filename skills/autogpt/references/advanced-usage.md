@@ -238,6 +238,66 @@ async def create_dynamic_graph(user_id: str, template: str):
 
 ## Production deployment
 
+### Setup essentials
+
+Local/dev install (Docker):
+
+```bash
+# Clone repository
+git clone https://github.com/Significant-Gravitas/AutoGPT.git
+cd AutoGPT/autogpt_platform
+
+# Copy environment file and start backend services
+cp .env.example .env
+docker compose up -d --build
+
+# Start frontend (separate terminal)
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Minimal production compose:
+
+```yaml
+# docker-compose.prod.yml
+services:
+  rest_server:
+    image: autogpt/platform-backend
+    environment:
+      - DATABASE_URL=postgresql://...
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8006:8006"
+
+  executor:
+    image: autogpt/platform-backend
+    command: poetry run executor
+
+  frontend:
+    image: autogpt/platform-frontend
+    ports:
+      - "3000:3000"
+```
+
+Key environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection |
+| `REDIS_URL` | Redis connection |
+| `RABBITMQ_URL` | RabbitMQ connection |
+| `ENCRYPTION_KEY` | Credential encryption |
+| `SUPABASE_URL` | Authentication |
+
+Generate the credential encryption key:
+
+```bash
+cd autogpt_platform/backend
+poetry run cli gen-encrypt-key
+```
+
 ### Kubernetes deployment
 
 ```yaml

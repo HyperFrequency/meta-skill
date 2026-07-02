@@ -1,6 +1,6 @@
 ---
-name: ara-rigor-reviewer
-description: Performs ARA Seal Level 2 semantic epistemic review on Agent-Native Research Artifacts, scoring six dimensions (evidence relevance, falsifiability, scope calibration, argument coherence, exploration integrity, methodological rigor) and producing a constructive, severity-ranked report with a Strong Accept-to-Reject recommendation. Use after Level 1 structural validation passes, when an ARA needs an objective epistemic critique before publication or release.
+name: rigor-reviewer
+description: Performs ARA Seal Level 2 semantic epistemic review on Agent-Native Research Artifacts, scoring six dimensions (evidence relevance, falsifiability, scope calibration, argument coherence, exploration integrity, methodological rigor) and writing a constructive, severity-ranked level2_report.json with a Strong Accept-to-Reject recommendation. Use after Level 1 structural validation passes, when an ARA needs an objective epistemic critique of its content before publication or release. Do NOT use for Level 1 structural validation (reference resolution, field presence, YAML parsing, cross-link consistency), before Level 1 has passed, on non-ARA documents, or when the user wants the artifact authored, edited, or fixed rather than reviewed.
 version: 3.0.0
 author: Orchestra Research
 license: MIT
@@ -30,8 +30,8 @@ a reviewer who helps authors improve their work.
 
 ## Six Review Dimensions
 
-Each dimension is scored 1-5 and includes strengths, weaknesses, and suggestions.
-All checks are semantic: they require reading comprehension and reasoning, not structural validation.
+Each dimension is scored 1-5 with strengths, weaknesses, and suggestions. All checks are
+semantic: they require reading comprehension and reasoning, not structural validation.
 
 | Dimension | What it evaluates |
 |-----------|-------------------|
@@ -41,6 +41,10 @@ All checks are semantic: they require reading comprehension and reasoning, not s
 | **D4. Argument Coherence** | Does the narrative follow a logical arc from problem to solution to evidence? |
 | **D5. Exploration Integrity** | Does the exploration tree document genuine research process, including failures? |
 | **D6. Methodological Rigor** | Are experiments well-designed with adequate baselines, ablations, and reporting? |
+
+The full per-dimension **check inventory** (what to verify, with finding severities) and the
+**1-5 scoring anchors** live in [references/review-dimensions.md](references/review-dimensions.md).
+Read it before scoring — it is the authoritative rubric for Step 4.
 
 ---
 
@@ -90,119 +94,11 @@ Construct these maps as inputs for semantic analysis. Do NOT validate structural
 
 ### Step 4: Evaluate Each Dimension
 
-For each dimension, perform semantic reasoning over the parsed content. Record strengths, weaknesses, and suggestions as you go.
-
----
-
-#### D1. Evidence Relevance
-
-For each claim-experiment pair linked through Proof/Verifies:
-
-- **Relevance**: Does the experiment's Setup/Procedure/Metrics actually address what the claim asserts? (Not just "link exists" but "link is substantively relevant.")
-- **Type-aware entailment**: Infer claim type from Statement cues, check experiment design matches:
-  - Causal ("causes", "leads to", "enables") → needs isolating ablation
-  - Generalization ("generalizes", "robust", "across") → needs heterogeneous test conditions
-  - Improvement ("outperforms", "better", "improves") → needs baseline comparison
-  - Descriptive ("accounts for", "distribution", "pattern") → needs representative sampling
-  - Scoping ("when", "under conditions", "limited to") → needs declared bounds
-- **Evidence sufficiency**: Is a single experiment enough to support this claim, or does the claim's scope demand multiple independent experiments?
-
-**Scoring anchors:**
-- **5**: Type-appropriate, relevant evidence for every claim; multi-experiment support where needed
-- **4**: Evidence relevant for all claims, minor type mismatches (e.g., causal claim with correlation-only evidence)
-- **3**: Most claim-experiment pairs are relevant, 1-2 weak matches where evidence doesn't quite address the claim
-- **2**: Multiple claims where cited experiments don't substantively address what the claim asserts
-- **1**: Majority of claims cite experiments that are irrelevant to their statements
-
----
-
-#### D2. Falsifiability Quality
-
-For each claim's Falsification criteria field:
-
-- **Actionability**: Could an independent researcher execute this criterion? Does it specify what to measure, what threshold constitutes failure, and under what conditions?
-- **Non-triviality**: Is the criterion non-tautological? ("If the method doesn't work" is trivial. "Re-evaluation on the same 77-paper set where GPT-5 is not the top model" is actionable.)
-- **Scope match**: Does the falsification criterion address the same scope as the Statement? (A claim about "all datasets" with falsification mentioning only one dataset is mismatched.)
-- **Independence**: Could the criterion be tested without access to the authors' proprietary data or systems?
-
-**Scoring anchors:**
-- **5**: Every claim has specific, actionable, independently testable falsification criteria matching the claim's scope
-- **4**: Most criteria are strong, 1-2 are vague or hard to operationalize
-- **3**: Mixed quality; some actionable, some trivial or scope-mismatched
-- **2**: Most criteria are trivial, tautological, or scope-mismatched
-- **1**: Falsification criteria meaningless across claims
-
----
-
-#### D3. Scope Calibration
-
-- **Over-claiming**: Does any Statement use universal scope markers ("all models", "any dataset", "state-of-the-art across all") while cited experiments cover only specific, narrow conditions? The gap must be substantial.
-- **Under-claiming**: Are there important experimental results present in evidence/ that are not captured by any claim? (Evidence without a corresponding claim.)
-- **Assumption explicitness**: Are key assumptions stated in problem.md (Assumptions section) or constraints.md? Are there unstated assumptions implied by the experimental design?
-- **Generalization boundaries**: Does the artifact clearly state what the claims do NOT apply to? Check constraints.md and limitations in the exploration tree.
-- **Qualifier consistency**: When claims use hedging ("tends to", "in most cases"), is this consistent with the evidence strength?
-
-**Scoring anchors:**
-- **5**: All claims precisely match evidence scope, assumptions explicit, limits clearly stated
-- **4**: Claims well-scoped with minor gaps in assumption documentation
-- **3**: Some claims slightly over/under-reach, assumptions partially stated
-- **2**: Multiple over-claims or significant undocumented assumptions
-- **1**: Pervasive scope mismatch between claims and evidence
-
----
-
-#### D4. Argument Coherence
-
-- **Observation → Gap derivation**: Do the stated gaps follow logically from the observations? Or are they asserted without connection?
-- **Gap → Insight connection**: Does the key insight in problem.md address the identified gaps?
-- **Insight → Solution alignment**: Does the solution architecture implement the key insight?
-- **Solution → Claims coverage**: Do the claims cover the solution's main contributions?
-- **Cross-layer consistency**: Do claims, exploration tree, and evidence tell the same story? Flag contradictions.
-- **Narrative completeness**: Are there motivating questions from problem.md that are neither answered nor explicitly deferred?
-- **Gap coverage**: For each gap in problem.md, is there at least one claim that substantively addresses it? Flag gaps that are motivated but never resolved.
-
-**Scoring anchors:**
-- **5**: Clear logical arc (observations → gaps → insight → solution → claims → evidence), all gaps addressed, no contradictions
-- **4**: Strong flow with minor logical gaps or one unaddressed gap
-- **3**: General flow present but some disconnects between layers
-- **2**: Significant misalignment between problem statement and claims, or unresolved contradictions
-- **1**: No coherent logical flow; layers tell different stories
-
----
-
-#### D5. Exploration Integrity
-
-- **Dead-end quality**: Is the `failure_mode` specific enough to be actionable? ("Didn't work" is bad. "Divergence after 1000 steps due to gradient explosion" is good.) Is the `lesson` a genuine transferable insight?
-- **Decision rationale quality**: Do rationales explain WHY the chosen path was preferred over alternatives? Are alternatives real alternatives or strawmen?
-- **Rebutted-branch consistency**: Does any claim advocate an approach marked as dead_end or pivot in the tree? (This is a logical contradiction.)
-- **Exploration breadth**: For the paper's main design choices, were at least 2 alternatives considered and documented?
-- **Honesty signal**: Does the tree document genuine negative results, or does it read like a post-hoc justification? A tree with zero dead-ends or only trivial failures is suspicious.
-
-**Scoring anchors:**
-- **5**: Rich tree with well-documented dead-ends (specific failure modes, actionable lessons), thorough decision rationale, genuine negative results
-- **4**: Good tree with minor gaps in dead-end documentation or decision rationale
-- **3**: Tree present but dead-ends lack specificity or decisions lack alternatives
-- **2**: Boilerplate documentation; dead-ends and decisions read as formulaic rather than authentic
-- **1**: Tree contradicts claims or reads entirely as post-hoc justification
-
----
-
-#### D6. Methodological Rigor
-
-- **Baseline adequacy**: Are the right things being compared? Are baselines recent and relevant? Flag experiments with "no baseline" for comparative claims.
-- **Ablation coverage**: For claims involving multiple components, does at least one experiment isolate individual contributions?
-- **Statistical reporting**: Do experiments mention variance, confidence intervals, number of runs, or statistical tests? Flag single-run results for quantitative claims.
-- **Metric-claim alignment**: Does the metric actually measure what the claim asserts? (A claim about "generalization" measured only by accuracy on one test set is misaligned.)
-- **Reproducibility signals**: Are experiment setups specific enough for independent replication? (Model name, dataset, hardware, hyperparameters.)
-
-**Scoring anchors:**
-- **5**: Comprehensive baselines, proper ablations, statistical rigor, metrics precisely match claims, fully reproducible setup
-- **4**: Strong methodology with minor gaps (e.g., missing variance on one experiment)
-- **3**: Adequate but missing some baselines or statistical details
-- **2**: Significant gaps; missing baselines for comparative claims or no ablations
-- **1**: No baselines, no ablations, metrics don't match claims
-
----
+For each of D1-D6, run the dimension's check inventory and assign a 1-5 score using the
+scoring anchors — both defined in
+[references/review-dimensions.md](references/review-dimensions.md). Record strengths,
+weaknesses, and suggestions for every dimension as you go. Keep scoring **calibrated**:
+most competent ARAs land in the 3-4 range (see Critical Rules).
 
 ### Step 5: Compile Findings
 
@@ -210,11 +106,8 @@ Collect all issues found across the six dimensions into a single findings list. 
 
 - **finding_id**: F01, F02, ... (sequential)
 - **dimension**: which of D1-D6
-- **severity**: one of:
-  - `critical` — fundamental epistemic flaw; the claim or argument cannot stand as written
-  - `major` — significant weakness that undermines a claim or dimension score
-  - `minor` — noticeable issue that doesn't invalidate the work
-  - `suggestion` — constructive improvement opportunity, not a flaw
+- **severity**: `critical`, `major`, `minor`, or `suggestion` — definitions in
+  [references/review-dimensions.md](references/review-dimensions.md) (Finding Severity Definitions)
 - **target_file**: which ARA file
 - **target_entity**: C{NN}, E{NN}, H{NN}, G{N}, or node ID (if applicable)
 - **evidence_span**: verbatim substring from the ARA that triggered the finding (MUST be exact quote; omit if the finding is about an absence)
@@ -226,15 +119,9 @@ Sort findings by severity: critical first, then major, minor, suggestion.
 
 ### Step 6: Compute Overall Grade
 
-Calculate the mean of the six dimension scores. Apply the grade mapping:
-
-| Grade | Condition |
-|-------|-----------|
-| **Strong Accept** | mean ≥ 4.5 AND no dimension < 3 |
-| **Accept** | mean ≥ 3.8 AND no dimension < 2 |
-| **Weak Accept** | mean ≥ 3.0 AND no dimension < 2 |
-| **Weak Reject** | mean ≥ 2.0 AND (mean < 3.0 OR any dimension < 2) |
-| **Reject** | mean < 2.0 OR any dimension = 1 |
+Calculate the mean of the six dimension scores, then apply the grade mapping
+(Strong Accept / Accept / Weak Accept / Weak Reject / Reject) defined in
+[references/review-dimensions.md](references/review-dimensions.md) (Overall Grade Mapping).
 
 ### Step 7: Write Report
 
@@ -319,4 +206,6 @@ Write `level2_report.json` to the artifact root:
 
 ## Reference
 
-See [references/review-dimensions.md](references/review-dimensions.md) for scoring anchor details and check inventories per dimension.
+[references/review-dimensions.md](references/review-dimensions.md) — authoritative rubric:
+per-dimension check inventories, 1-5 scoring anchors, the overall grade mapping, and finding
+severity definitions.

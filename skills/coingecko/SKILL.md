@@ -1,80 +1,51 @@
 ---
 name: coingecko
-description: CoinGecko API documentation - cryptocurrency market data API, price feeds, market cap, volume, historical data. Use when integrating CoinGecko API, building crypto price trackers, or accessing cryptocurrency market data.
+version: 0.2.0
+description: "CoinGecko REST API (v3) reference - crypto spot prices, market cap/volume, OHLC + historical market charts, coin/exchange/NFT metadata, trending, and onchain DEX/pool data (GeckoTerminal). Use when calling api.coingecko.com or pro-api.coingecko.com, picking an endpoint, wiring Demo vs Pro auth headers, or mapping coin/network/contract IDs. NOT for: trade execution or order placement (CoinGecko is read-only market data - use an exchange API); on-chain reads beyond price/pools (use an RPC/indexer); equities/FX/non-crypto data; the legacy pycoingecko wrapper internals; or other vendors' feeds (CoinMarketCap, CryptoCompare, Kaiko, exchange WebSockets)."
 ---
 
-# Coingecko Skill
+# CoinGecko API
 
-Comprehensive assistance with coingecko development, generated from official documentation.
+Router for the CoinGecko v3 REST API. Pick the area below, then read the matching
+file in `references/` for endpoint params, response shapes, and examples.
 
-## When to Use This Skill
+## Endpoints & auth (verify against references/authentication.md before coding)
 
-This skill should be triggered when:
-- Working with coingecko
-- Asking about coingecko features or APIs
-- Implementing coingecko solutions
-- Debugging coingecko code
-- Learning coingecko best practices
+- **Demo (free):** base `https://api.coingecko.com/api/v3/` — key via header
+  `x-cg-demo-api-key: <KEY>` or query `x_cg_demo_api_key=<KEY>`.
+- **Pro (paid):** base `https://pro-api.coingecko.com/api/v3/` — key via header
+  `x-cg-pro-api-key: <KEY>` or query `x_cg_pro_api_key=<KEY>`.
+- Demo and Pro keys are **not interchangeable** and each is valid only on its own
+  base URL. `GET /ping` checks server status; `GET /key` reports Pro usage/credits.
+- IDs are not symbols: use coin **id** (e.g. `bitcoin`, not `BTC`), `network` ids,
+  and `asset_platform` ids. Resolve via the ID-map endpoints in `references/reference.md`.
 
-## Quick Reference
+## Route to the right reference
 
-### Common Patterns
+| You need… | Read |
+|---|---|
+| Auth, base URLs, rate limits, MCP server, getting started | `references/authentication.md`, `references/introduction.md` |
+| Spot price (`/simple/price`), markets list (`/coins/markets`), coin detail, OHLC, historical `market_chart` | `references/coins.md`, `references/market_data.md` |
+| Token price/info by contract address | `references/contract.md` |
+| Exchanges, tickers, derivatives | `references/exchanges.md` |
+| Trending coins/NFTs/categories, global stats | `references/trending.md` |
+| NFT collection data | `references/nfts.md` |
+| Onchain DEX/pools/trades (GeckoTerminal), `/onchain/...` | `references/other.md` |
+| ID maps (coins/networks/asset platforms/currencies/entities), `/ping`, `/key` | `references/reference.md` |
+| Plan tiers, pricing, no-code tutorials | `references/pricing.md` |
+| Everything in one file (full dump) | `references/llms.md`, `references/llms-full.md` |
 
-*Quick reference patterns will be added as you use the skill.*
+## Notes & gotchas
 
-## Reference Files
+- Most endpoints cache 30–60s; historical `market_chart` granularity is auto-chosen
+  by the requested day range (you can't force interval on Demo).
+- `null` market caps appear for unverified onchain tokens — don't treat as zero.
+- Pagination and some filters (e.g. `/pools/megafilter`, pages beyond 10) are Pro-only.
+- CoinGecko also exposes an MCP server (`mcp.api.coingecko.com` / `mcp.pro-api...`);
+  see `references/introduction.md`. For routed MCP access in this stack, see the
+  `forge` and `mcp2cli` skills.
 
-This skill includes comprehensive documentation in `references/`:
+## Sibling skills
 
-- **authentication.md** - Authentication documentation
-- **coins.md** - Coins documentation
-- **contract.md** - Contract documentation
-- **exchanges.md** - Exchanges documentation
-- **introduction.md** - Introduction documentation
-- **market_data.md** - Market Data documentation
-- **nfts.md** - Nfts documentation
-- **other.md** - Other documentation
-- **pricing.md** - Pricing documentation
-- **reference.md** - Reference documentation
-- **trending.md** - Trending documentation
-
-Use `view` to read specific reference files when detailed information is needed.
-
-## Working with This Skill
-
-### For Beginners
-Start with the getting_started or tutorials reference files for foundational concepts.
-
-### For Specific Features
-Use the appropriate category reference file (api, guides, etc.) for detailed information.
-
-### For Code Examples
-The quick reference section above contains common patterns extracted from the official docs.
-
-## Resources
-
-### references/
-Organized documentation extracted from official sources. These files contain:
-- Detailed explanations
-- Code examples with language annotations
-- Links to original documentation
-- Table of contents for quick navigation
-
-### scripts/
-Add helper scripts here for common automation tasks.
-
-### assets/
-Add templates, boilerplate, or example projects here.
-
-## Notes
-
-- This skill was automatically generated from official documentation
-- Reference files preserve the structure and examples from source docs
-- Code examples include language detection for better syntax highlighting
-- Quick reference patterns are extracted from common usage examples in the docs
-
-## Updating
-
-To refresh this skill with updated documentation:
-1. Re-run the scraper with the same configuration
-2. The skill will be rebuilt with the latest information
+- Building/backtesting a strategy on this data → `strategy-translator`, `vectorbt`.
+- Broad multi-source market research, not a single API → `deep-research`.

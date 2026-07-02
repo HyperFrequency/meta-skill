@@ -1,5 +1,6 @@
 ---
 name: policy-gradients
+version: 0.1.0
 description: Policy-gradient methods — direct optimization of a parameterized stochastic policy via the score-function (REINFORCE) estimator and its variance-reduced descendants (A2C, PPO). Includes a hand-rolled REINFORCE for pedagogy and a 10-line PPO via `stable-baselines3` for production. Use when actions are continuous, when you need a stochastic policy (partial observability, exploration), or when you want lower-variance, more stable training than vanilla DQN at the cost of sample efficiency. For general SB3 use (callbacks, vectorized envs, custom envs), see the existing `stable-baselines3` skill in `k-dense-scientific-agent-skills/`.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 license: MIT
