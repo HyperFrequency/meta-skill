@@ -1,0 +1,130 @@
+{
+  "rubric_id": "frontier-agent-skill",
+  "rubric_version": "1.0.0",
+  "title": "Frontier Agent-Skill Rubric",
+  "released": "2026-07-02",
+  "summary": "Score a single SKILL.md across five dimensions. Every dimension is graded 0-5 and PASS requires every dimension >= pass_threshold (no averaging).",
+  "scale": { "min": 0, "max": 5 },
+  "pass_threshold": 4,
+  "pass_rule": "min(dimension_score for all dimensions) >= pass_threshold",
+  "dimensions": [
+    {
+      "id": "format",
+      "ordinal": 1,
+      "title": "FORMAT",
+      "auto_scorable": true,
+      "criteria": "YAML frontmatter parses; name EXACTLY equals the directory slug; description <= 1024 chars stating WHAT + WHEN-to-use + WHEN-NOT; version present; scannable markdown; no broken references/ links.",
+      "checks": [
+        { "id": "frontmatter_parses", "auto": true, "severity": "hard", "desc": "The leading --- fenced block parses as YAML." },
+        { "id": "name_matches_slug", "auto": true, "severity": "hard", "desc": "Frontmatter name is byte-for-byte equal to the containing directory name." },
+        { "id": "description_present", "auto": true, "severity": "hard", "desc": "description key exists and is non-empty after trim." },
+        { "id": "description_within_cap", "auto": true, "severity": "hard", "max_chars": 1024, "desc": "len(description) <= 1024 (Claude Code truncates longer descriptions at load time)." },
+        { "id": "description_states_what", "auto": "heuristic", "severity": "soft", "desc": "Description opens with what the skill does (a capability/verb clause)." },
+        { "id": "description_states_when", "auto": "heuristic", "severity": "soft", "desc": "Description names positive triggers (use-when / trigger phrases)." },
+        { "id": "description_states_when_not", "auto": "heuristic", "severity": "soft", "desc": "Description names anti-triggers (not-for / do-not-use / instead-of)." },
+        { "id": "version_present", "auto": true, "severity": "hard", "desc": "version key exists in frontmatter." },
+        { "id": "scannable_markdown", "auto": "heuristic", "severity": "soft", "desc": "Body uses headings/lists/code fences, not one undifferentiated block." },
+        { "id": "no_broken_reference_links", "auto": true, "severity": "hard", "desc": "Every references/ and scripts/ path mentioned in SKILL.md resolves to an existing file." }
+      ],
+      "anchors": {
+        "5": "All hard and soft checks pass; description crisply states WHAT + WHEN + WHEN-NOT; body is cleanly sectioned; every internal link resolves.",
+        "4": "All hard checks pass; at most one soft check is weak (e.g. WHEN-NOT is implicit rather than explicit).",
+        "3": "A soft failure plus a borderline hard item (e.g. description at 1010/1024 with no anti-triggers), or scannability is poor.",
+        "2": "One hard check fails (name != slug, missing version, or one broken references/ link).",
+        "0": "Frontmatter does not parse, description missing/over cap, or multiple hard checks fail."
+      }
+    },
+    {
+      "id": "depth",
+      "ordinal": 2,
+      "title": "DEPTH",
+      "auto_scorable": false,
+      "criteria": "Technically accurate and expert-level; concrete commands, APIs, and parameters rather than vague prose; deep material pushed to references/.",
+      "checks": [
+        { "id": "technically_accurate", "auto": false, "severity": "hard", "desc": "Claims, commands, and APIs are real and correct — verify against source, do not accept invented calls." },
+        { "id": "concrete_not_vague", "auto": false, "severity": "hard", "desc": "Instructions name exact commands/flags/params/functions, not hand-wavy 'configure appropriately'." },
+        { "id": "depth_in_references", "auto": false, "severity": "soft", "desc": "Expert detail lives in references/, keeping SKILL.md a router." }
+      ],
+      "anchors": {
+        "5": "Expert-level and precise throughout; every instruction is actionable with real commands/APIs; references carry the deep material.",
+        "4": "Solid and accurate; concrete in the parts that matter, with at most minor vagueness that does not block a practitioner.",
+        "3": "Mixed — some concrete guidance but notable vague passages, or one shallow section a practitioner would have to fill in.",
+        "2": "Mostly generic prose; few real commands/APIs; or a factual/API error that would mislead.",
+        "0": "Vague throughout or materially inaccurate (invented APIs, wrong commands)."
+      }
+    },
+    {
+      "id": "completeness",
+      "ordinal": 3,
+      "title": "COMPLETENESS",
+      "auto_scorable": false,
+      "criteria": "Covers the full scope of the skill's stated job; addresses edge cases, failure modes, and boundaries; leaves no gap a practitioner hits in real use.",
+      "checks": [
+        { "id": "full_scope_covered", "auto": false, "severity": "hard", "desc": "Everything the description promises is actually addressed somewhere in the skill." },
+        { "id": "edge_cases_and_failures", "auto": false, "severity": "hard", "desc": "Edge cases, failure modes, and error paths are called out, not just the happy path." },
+        { "id": "boundaries_explicit", "auto": false, "severity": "soft", "desc": "The skill states what it does NOT do and where to go instead." }
+      ],
+      "anchors": {
+        "5": "Full stated scope covered; edge cases, failure modes, and boundaries explicit; a practitioner hits no surprising gap.",
+        "4": "Full scope and the main failure modes covered; a minor edge case is thin but not blocking.",
+        "3": "Happy path solid but a real failure mode or part of the promised scope is missing.",
+        "2": "Multiple gaps — a practitioner would get stuck following it in a common case.",
+        "0": "Only a sketch; large parts of the stated scope are absent."
+      }
+    },
+    {
+      "id": "structured_disclosure",
+      "ordinal": 4,
+      "title": "STRUCTURED DISCLOSURE",
+      "auto_scorable": "partial",
+      "criteria": "SKILL.md is a concise router (target < ~12 KB) that delegates depth to references/; it is not a wall of text.",
+      "checks": [
+        { "id": "router_size", "auto": true, "severity": "soft", "target_bytes": 12288, "desc": "SKILL.md byte size is at or under the ~12 KB router budget." },
+        { "id": "delegates_to_references", "auto": false, "severity": "hard", "desc": "SKILL.md points to references/ for depth instead of inlining it." },
+        { "id": "no_wall_of_text", "auto": false, "severity": "soft", "desc": "Reads as a scannable router, not an essay." }
+      ],
+      "anchors": {
+        "5": "SKILL.md is well under budget, cleanly routes to references/, and every deep topic has a home outside the router.",
+        "4": "At or near budget; routes to references/ for the heavy material with at most one section slightly too long.",
+        "3": "Over budget or inlines depth that belongs in references/, but still navigable.",
+        "2": "Wall of text; references/ underused; the router does the work the references should do.",
+        "0": "Everything crammed into SKILL.md; no meaningful progressive disclosure."
+      }
+    },
+    {
+      "id": "frontier_guidelines",
+      "ordinal": 5,
+      "title": "FRONTIER-MODEL GUIDELINES",
+      "auto_scorable": false,
+      "criteria": "Imperative voice; clear triggers and anti-triggers; explicit boundaries; cross-links to sibling skills; no redundancy; nothing misleading.",
+      "checks": [
+        { "id": "imperative_voice", "auto": false, "severity": "soft", "desc": "Directs the model in the imperative ('Run', 'Read', 'Score'), not passive narration." },
+        { "id": "clear_triggers_and_anti_triggers", "auto": false, "severity": "hard", "desc": "Triggers and anti-triggers are unambiguous so the router fires correctly." },
+        { "id": "cross_links_siblings", "auto": false, "severity": "soft", "desc": "Names sibling skills and when to prefer them." },
+        { "id": "no_redundancy", "auto": false, "severity": "soft", "desc": "No material repetition across SKILL.md and references." },
+        { "id": "nothing_misleading", "auto": false, "severity": "hard", "desc": "No claim that would cause the model to do the wrong thing or overstate capability." }
+      ],
+      "anchors": {
+        "5": "Imperative and tight; triggers/anti-triggers crisp; cross-links present; zero redundancy; nothing misleading.",
+        "4": "Mostly imperative with clear triggers and boundaries; a little redundancy or one missing cross-link.",
+        "3": "Guidance is usable but drifts into narration, or triggers/anti-triggers blur at the edges.",
+        "2": "Weak triggers or noticeable redundancy that would degrade routing or waste context.",
+        "0": "Misleading guidance, or triggers so vague the router cannot place the skill."
+      }
+    }
+  ],
+  "scorecard_contract": {
+    "desc": "Shape emitted by scripts/eval_skill.py and consumed by scripts/gate.py.",
+    "fields": {
+      "rubric_id": "string — copied from this file",
+      "rubric_version": "string — copied from this file; every scorecard is stamped with the rubric it was graded under",
+      "target": "string — path to the scored skill directory",
+      "slug": "string — directory basename",
+      "generated": "string — ISO-8601 UTC timestamp",
+      "auto_checks": "object — raw deterministic results (booleans, description length, skill byte size)",
+      "dimensions": "object keyed by dimension id -> {score:int|null, auto:bool, notes:[string]}",
+      "min_score": "int|null — lowest dimension score once all are filled",
+      "pass": "bool|null — null until every dimension is scored; else min_score >= pass_threshold"
+    }
+  }
+}

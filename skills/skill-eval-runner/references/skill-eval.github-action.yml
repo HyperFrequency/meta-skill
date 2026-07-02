@@ -1,0 +1,63 @@
+# Skill-eval regression gate — drop into .github/workflows/ of the repo that hosts your skills.
+#
+# What it enforces on every push/PR that touches a skill:
+#   1. Deterministic FORMAT pass still succeeds (YAML parses, name == slug,
+#      description <= 1024 chars, version present, no broken references/ links).
+#   2. The committed scorecard PASSES the rubric (every dimension >= 4) and has
+#      not regressed against the committed baseline.
+#
+# The judged dimensions (DEPTH, COMPLETENESS, STRUCTURED DISCLOSURE,
+# FRONTIER-MODEL GUIDELINES) are produced locally by the author's model-judge
+# pass and committed as the scorecard — CI has no model in the loop. CI's job is
+# to guarantee the committed scorecard is real, passing, and non-regressing.
+#
+# Adjust SKILL_DIR / paths for your layout. This example gates ONE skill; to gate
+# a tree, replace the single-skill block with the loop in references/regression-gate.md.
+
+name: skill-eval-gate
+
+on:
+  push:
+    paths:
+      - "path/to/target-skill/**"
+  pull_request:
+    paths:
+      - "path/to/target-skill/**"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      # Directory of the skill under test.
+      SKILL_DIR: path/to/target-skill
+      # Directory holding skill-eval-runner's scripts/ + references/.
+      RUNNER: path/to/skill-eval-runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install --quiet pyyaml
+
+      - name: Deterministic FORMAT pass (fails on any hard FORMAT check)
+        run: |
+          python3 "$RUNNER/scripts/eval_skill.py" "$GITHUB_WORKSPACE/$SKILL_DIR" \
+            --out /tmp/live.deterministic.json --auto-only
+
+      - name: Gate committed scorecard (below-pass + regression vs baseline)
+        run: |
+          CARD="$SKILL_DIR/.skill-eval/scorecard.json"
+          BASE="$SKILL_DIR/.skill-eval/baseline.scorecard.json"
+          if [ ! -f "$CARD" ]; then
+            echo "::error::missing committed scorecard at $CARD — run the judge pass and commit it"
+            exit 1
+          fi
+          if [ -f "$BASE" ]; then
+            python3 "$RUNNER/scripts/gate.py" "$CARD" --baseline "$BASE"
+          else
+            echo "::notice::no baseline yet — enforcing below-pass only; commit a baseline to freeze gains"
+            python3 "$RUNNER/scripts/gate.py" "$CARD"
+          fi
