@@ -1,19 +1,15 @@
 ---
 name: swe-loop
 description: >
-  Use when the user has a coding prompt — a feature, bug fix, or refactor — and wants it implemented
+  Use when the user has a coding prompt — feature, bug fix, or refactor — and wants it implemented
   end to end by a self-checking software loop, not a single pass. It refines the prompt into an
-  executable plan (running the plan-loop internally), then executes the plan task by task: an Engineer
-  subagent implements each PR-sized task editing only source, a separate QA subagent authors the tests
-  that prove the task's acceptance criteria (or grades quality only when tests already cover them), runs
-  the task's tests plus the full accumulated regression suite, and grades the code against a strict
-  conciseness/readability/style-match rubric; the Engineer and QA loop on each task until the tests pass
-  and the quality gate holds, then it commits and opens a pull request for the task — stacked PRs (one
-  per task, each based on the prior) by default, or one combined PR — and moves to the next task. Author
-  and critic have disjoint write scopes (Engineer owns source, QA owns tests) so neither can game the gate.
-  Not for producing a
-  plan without building it (that is plan-loop), and not for tuning a metric on an existing artifact under
-  a fixed correctness bound (that is optimize-loop).
+  executable plan (via plan-loop), then executes task by task: an Engineer subagent implements each
+  PR-sized task (source only), a separate QA subagent authors the tests proving its acceptance criteria
+  and runs them plus the full regression suite, then grades against a conciseness/readability/style
+  rubric; Engineer and QA loop per task until tests pass and the quality gate holds, then commit and open
+  a PR (stacked per task by default, or one combined). Disjoint write scopes (Engineer owns source, QA
+  owns tests) so neither games the gate. Not for producing a plan without building it (plan-loop), nor
+  tuning a metric on an existing artifact under a fixed correctness bound (optimize-loop).
 compatibility: Requires Python 3.9+ and a runnable test command in the target repo.
 metadata:
   version: "0.1.0"

@@ -1,77 +1,173 @@
 ---
 name: infranodus
-description: "Knowledge graph + text network analysis via the LOCAL InfraNodus MCP (`http://infranodus-mcp:9005/sse`). Use when the user types `/infranodus <tool> [args]`, wants to generate a knowledge graph from text, find topical clusters, identify content gaps, propose research questions, or analyze text structure / bias / coherence. Trigger on phrases like \"build an ontology from these notes\", \"what are the topical clusters in X\", \"find content gaps\", \"generate research questions from Y\", \"analyze the bias in this text\", or any text-network / knowledge-graph framing. Important: runs against the local OSS engine — no calls to infranodus.com, no per-request fees. AI-dependent tools (research-ideas) degrade gracefully because the OSS engine is older than the SaaS."
+version: 0.1.0
+description: >
+  Text network analysis, knowledge graphs, content gap detection, SEO/GEO optimization,
+  structured memory, and text comparison via the InfraNodus MCP server driven from the CLI (mcporter).
+  Use when asked to: analyze text structure, generate knowledge graphs, find content gaps,
+  generate research questions or ideas, compare texts, optimize text/content for SEO,
+  analyze Google search results/queries, retrieve from a knowledge base (GraphRAG),
+  save/retrieve structured memories, develop latent topics, or bridge conceptual gaps.
+  Supports plain text, URLs (including YouTube video transcription), and existing InfraNodus graphs.
+  Defaults to the LOCAL OSS engine (no per-request fees); the hosted infranodus.com SaaS is
+  opt-in only and bills per request. When not to use: for the MCP-router (/forge or /infranodus
+  slash-command) path use the sibling "infranodus" skill instead — this skill is the mcporter CLI variant.
+homepage: https://infranodus.com
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🕸️",
+        "requires": { "bins": ["mcporter"] },
+        "primaryEnv": "INFRANODUS_API_KEY",
+        "install":
+          [
+            {
+              "id": "mcporter",
+              "kind": "node",
+              "package": "mcporter",
+              "bins": ["mcporter"],
+              "label": "Install mcporter (node)",
+            },
+          ],
+      },
+  }
 ---
 
-# /infranodus
+# InfraNodus
 
-Shortcut to the InfraNodus MCP server. **Fully local** — no calls leave the compose network.
+Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
-## Architecture
+## Setup & Auth
 
-```
-/infranodus  →  /forge router  →  http://infranodus-mcp:9005/sse  →  Node MCP server
-                                                                ↓ HTTP
-                                                       http://infranodus:3000  (OSS engine)
-                                                                ↓ Bolt
-                                                       neo4j:7687  (graph DB)
-```
+> **Default to the LOCAL engine. Never default to `infranodus.com`.** The hosted SaaS
+> bills the user per request; the local OSS engine is free and is what the rest of the
+> neuro-harness stack pins to (`INFRANODUS_API_BASE=http://infranodus:3000/api/v1`). Only
+> use the hosted endpoint when the user *explicitly* asks for it.
 
-Everything runs in the compose stack. `INFRANODUS_API_BASE=http://infranodus:3000/api/v1` — no calls to `infranodus.com`.
+### Default: local OSS engine (no API key, no fees)
 
-## How it works
+The local MCP server is exposed at `http://infranodus-mcp:9005/sse` inside the compose
+stack (or `http://localhost:9005/sse` from the host). Point mcporter at it — no auth header:
 
 ```bash
-docker compose exec -T app uvx mcp2cli --mcp http://infranodus-mcp:9005/sse <tool> --args '<k=v>...'
+mcporter config add infranodus \
+  --url http://localhost:9005/sse \
+  --transport sse \
+  --scope home
 ```
 
-If unsure of the tool name:
+No `INFRANODUS_API_KEY` is needed for the local engine. The engine UI lives at
+`http://localhost:3030` (sign-up/admin handled by the sibling `infranodus` skill's compose
+stack). AI-dependent tools (e.g. `generate_research_ideas`) degrade gracefully because the
+OSS engine is older than the SaaS.
+
+### Opt-in only: hosted SaaS (`mcp.infranodus.com`, bills per request)
+
+Use **only** when the user explicitly requests the hosted service. Requires an InfraNodus
+account at https://infranodus.com and an API key.
+
+Set `INFRANODUS_API_KEY` (Bearer token) via env var (`export INFRANODUS_API_KEY=...`) or
+OpenClaw config (`~/.openclaw/openclaw.json`, which maps `skills.entries.infranodus.apiKey`
+→ the env var). Then add the server:
 
 ```bash
-docker compose exec -T app uvx mcp2cli --mcp http://infranodus-mcp:9005/sse --list
+mcporter config add infranodus \
+  --url https://mcp.infranodus.com/ \
+  --transport http \
+  --header "accept=application/json, text/event-stream" \
+  --header "Authorization=Bearer $INFRANODUS_API_KEY" \
+  --scope home
 ```
 
-## Tools (per the upstream MCP server)
+OAuth alternative (interactive browser login): add with `--auth oauth` (omit the
+Authorization header), then `mcporter auth infranodus`; re-auth with
+`mcporter auth infranodus --reset`.
 
-- `generate_knowledge_graph` — text → graph
-- `analyze_existing_graph_by_name` — pull a saved graph
-- `analyze_text` — text / URL / YouTube → topics + clusters + summary
-- `generate_content_gaps` — what's underexplored?
-- `generate_topical_clusters` — main themes + sub-themes
-- `generate_contextual_hint` — high-level topical overview
-- `generate_research_questions` — bridge content gaps  *(may degrade on OSS engine)*
-- `generate_research_ideas` — actionable next-step ideas  *(may degrade on OSS engine)*
-- `optimize_text_structure` — bias + coherence analysis
+### Preflight & verify
 
-## Examples
+1. `mcporter list infranodus` — server must show as healthy
+2. For the hosted SaaS only: `test -n "$INFRANODUS_API_KEY"`, or OAuth tokens must be cached
+3. If auth fails: re-run `mcporter auth infranodus` or check your API key
 
-- `/infranodus analyze_text text="..."` — graph + clusters + summary
-- `/infranodus generate_topical_clusters text="..."` — themes only
-- `/infranodus generate_content_gaps text="..."` — gaps
-- `/infranodus optimize_text_structure text="..."` — bias + coherence
+## Calling Tools
 
-For multi-document analysis (vault-wide), pair with `/turbovault`:
+```bash
+mcporter call infranodus.<tool_name> key=value
+# or with JSON args:
+mcporter call infranodus.<tool_name> --args '{"text": "...", "includeGraph": true}'
+```
 
-1. `/turbovault list_notes --tag=research` → get note paths
-2. For each, `/turbovault read_note` → bodies
-3. Concatenate + `/infranodus analyze_text text=...` → vault-wide graph
+All analysis tools accept either `text` (plain text) or `url` (web page / YouTube video URL). Many also accept an existing InfraNodus graph via `graphName`.
 
-That chain is exactly what `/scrape-ingest-organize` automates.
+## Tool Catalog
 
-## First-time signup (one-off)
+### Analysis & Knowledge Graph Tools
 
-The OSS engine needs an account before its API works. On first install:
+| Tool | Purpose |
+|------|---------|
+| `generate_knowledge_graph` | Full graph analysis: clusters, gaps, concepts, relations, diversity stats. Set `includeGraph: true` for full structure. |
+| `create_knowledge_graph` | Same as above but **saves** the graph to InfraNodus. Requires `graphName`. |
+| `analyze_text` | General text analysis with clusters, gaps, concepts, and statements. Focus on analysis results rather than graph structure. |
+| `analyze_existing_graph_by_name` | Analyze an already-saved InfraNodus graph by name. |
+| `generate_topical_clusters` | Compact extraction of main topical clusters only. |
+| `generate_content_gaps` | Identify underdeveloped areas between topical clusters. |
+| `generate_contextual_hint` | Structural summary for LLM context (useful for GraphRAG augmentation). |
 
-1. `docker compose up -d` (the stack)
-2. Visit `http://localhost:3030/signup?invitation=<secret>` — the secret lives in the engine's `config.json` (`secrets.invitation`). Default for the t1r1rizk image is documented in `vendor/turbovault`'s README — check there or shell into the container to read `/app/config/secrets.json` if you're stuck.
-3. Create a user, then update `INFRANODUS_API_KEY` in `.env` if the OSS engine requires it (it doesn't for most local-only flows; the MCP server tolerates an empty key).
+### Ideation & Development Tools
 
-## When NOT to use
+| Tool | Purpose |
+|------|---------|
+| `generate_research_questions` | Generate research questions bridging content gaps. Use `useSeveralGaps: true` for diversity. |
+| `generate_research_ideas` | Generate ideas to develop the text. Use `shouldTranscend: true` to connect to wider discourse. |
+| `develop_text_tool` | Combined pipeline: content gap ideas + latent topic ideas + conceptual bridges. Use `transcendDiscourse: true` for outside-the-box thinking. |
+| `develop_latent_topics` | Find underdeveloped topics and generate ideas to develop them. `requestMode: "transcend"` for wider context. |
+| `develop_conceptual_bridges` | Find high-influence bridging concepts and generate ideas linking discourse to other contexts. |
+| `optimize_text_structure` | Analyze bias/coherence and suggest improvements. `responseType: "transcend"` for broader perspective. |
 
-- For *editing* notes: use `/turbovault` (it owns vault writes).
-- For *parsing source code*: use `/tree-sitter` (Pine grammar) or `/gitnexus`.
-- For "I want a quick web search": use the parallel-web / perplexity-search skills.
+### Memory Tools (Knowledge Graph Memory)
 
-## Companions
+| Tool | Purpose |
+|------|---------|
+| `memory_add_relations` | Save structured memories as knowledge graphs with `[[wikilink]]` entities. Use `modifyAnalyzedText: "extractEntitiesOnly"` for entity-focused graphs. |
+| `memory_get_relations` | Retrieve memories by entity from a graph. Pass `memoryContextName` and optional `entity` (e.g. `[[god]]`). |
 
-- `/forge`, `/turbovault`, `/scrape-ingest-organize`, `ontology-creator`, `critical-perspective`, `infranodus-cli` — the three retained user-named InfraNodus skills.
+### Retrieval & Search Tools
+
+| Tool | Purpose |
+|------|---------|
+| `retrieve_from_knowledge_base` | GraphRAG retrieval from a saved graph. Pass `graphName`, `prompt`, and optionally `includeGraphSummary: true`. |
+| `list_graphs` | List graphs in user's account. Filter by `nameContains`, `type`, etc. |
+| `search` | Search all graphs for statements containing a term. Returns graph IDs. |
+| `fetch` | Fetch specific statements found by `search` using the returned `id`. |
+
+### Text Comparison Tools
+
+| Tool | Purpose |
+|------|---------|
+| `generate_difference_graph_from_text` | Show what's missing in the **first** context that exists in the others. Pass `contexts` array of `{text}`, `{url}`, or `{graphName}` objects. |
+| `generate_overlap_from_texts` | Find common topics across all provided contexts. |
+| `merged_graph_from_texts` | Merge multiple sources into one graph for overview analysis. |
+
+### SEO / GEO / LLMO Tools
+
+| Tool | Purpose |
+|------|---------|
+| `analyze_google_search_results` | Graph of Google search results for queries. Use `includeSearchResults: true` for URLs. |
+| `analyze_related_search_queries` | Analyze "people also search for" data with search volume. Set `importLanguage` and `importCountry`. |
+| `search_queries_vs_search_results` | Find queries with high volume not covered by current results — content opportunities. Use `includeSearchQueries: true` for volume data. |
+| `generate_seo_report` | Full SEO report combining all SEO tools. Use `contentToExtract: "header tags"` for header analysis. **Timeout: 90s+** |
+
+## Key Patterns
+
+**Input flexibility:** Most tools accept `text`, `url` (including YouTube), or reference an existing `graphName`.
+
+**Comparison tools** use a `contexts` array: `[{text: "..."}, {url: "..."}, {graphName: "..."}]`
+
+**Diversity stats** in responses indicate text focus: `biased` → too concentrated, `focused` → somewhat concentrated, `diversified` → balanced, `dispersed` → too scattered.
+
+**Content gaps** show under-connected topic clusters — opportunities for new ideas or content.
+
+**Conceptual gateways** are high-influence bridging nodes linking different topic clusters.
+
+For detailed response schemas and examples, see [references/tool-examples.md](references/tool-examples.md).

@@ -6,9 +6,9 @@ tree is a merge, not a clobber. **Slugs are the join key** for every phase.
 ```
 INPUT (topic | source-list | search-query)
   └─ PHASE 1 DISPATCH   → split work across N parallel agents (default 6)
-  └─ PHASE 2 FETCH      → parallel-web → Exa → WebFetch → curl → arxiv
-  └─ PHASE 3 CONVERT    → markitdown <file> -o <slug>-fulltext.md
-  └─ PHASE 4 METADATA   → <slug>.md: frontmatter + verbatim abstract + why-matters
+  └─ PHASE 2 SCRAPE     → parallel_web.py / exa_search.py → WebFetch → curl → arxiv
+  └─ PHASE 3 CONVERT    → markitdown <file> -o <slug>-fulltext.md (only if no clean text)
+  └─ PHASE 4 INGEST     → turbovault write_note: <slug>.md frontmatter + verbatim abstract + why-matters
   └─ PHASE 5 WIKILINKS  → name→slug index, replace bare citations, resolution check
   └─ PHASE 6 INFRANODUS → generate_knowledge_graph, save _ontology.md + _clusters.md
   └─ PHASE 7 INDEX      → INDEX.md grouped by cluster + stats
@@ -21,8 +21,9 @@ then diminishing because of upstream API rate limits.
 
 1. Resolve the source list. Three paths:
    - **explicit URL/DOI list provided** → skip to dispatch
-   - **topic only** → run `mcp2cli parallel-web search "<topic> seminal papers"`,
-     curate, ask the user to confirm before fetching
+   - **topic only** → run `python scripts/parallel_web.py search "<topic> seminal
+     papers" --json -o _dispatch/seed.json`, curate, ask the user to confirm before
+     fetching
    - **search-query provided** → run search, treat top N hits as the source list
 2. Pre-generate slugs deterministically:
    `<first-author-lastname>-<year>-<short-title>` for papers,
@@ -35,26 +36,41 @@ then diminishing because of upstream API rate limits.
    path, the gateway endpoint table, the explicit phase-2 through phase-4
    instructions, and a hard rule: "you write only to files matching your slug list".
 
-Backend for the dispatch search: **parallel-web by default**. Exa only for
-long-tail technical content (specific lib versions, niche GitHub repos) when
-`EXA_API_KEY` is configured. WebFetch when a single known URL is enough.
+Backend for the dispatch search: **parallel-web by default** (needs
+`PARALLEL_API_KEY`). exa-search for long-tail technical/academic content (specific
+lib versions, niche GitHub repos, papers) when `EXA_API_KEY` is configured. WebFetch
+when a single known URL is enough. Both scrapers are **Python-CLI skills** — there is
+no `mcp2cli parallel-web` / `mcp2cli exa` route; call their scripts directly.
 
-## Phase 2 — FETCH
+## Phase 2 — SCRAPE
 
-Per agent, per item, try in this order. **Stop at the first success.**
+Per agent, per item, try in this order. **Stop at the first success.** Verified CLIs
+(2026-07-02, against the `parallel-web` and `exa-search` skill scripts):
 
-1. **parallel-web search + extract** (default).
+1. **parallel-web** (default). Positional query; `--json`; save with `-o`.
    ```bash
-   mcp2cli parallel-web search --query "<title> <first-author> <year>" --format json
-   mcp2cli parallel-web extract --url "<canonical-url>" --format markdown
+   # search (base model) — synthesized summary + cited sources
+   python scripts/parallel_web.py search "<title> <first-author> <year>" \
+     --model base --json -o "_originals/<slug>.parallel.json"
+   # pull a known canonical URL's raw content (verification / full text)
+   python scripts/parallel_web.py extract "<canonical-url>" \
+     --full-content -o "_originals/<slug>.html"
    ```
-   Save extract output to `_originals/<slug>.html` (preserve as HTML even if the
-   API returns markdown — phase 3 will re-convert).
-2. **Exa search + contents** (alt).
+   `search` also takes `--model core` for deeper multi-source synthesis;
+   `research "<query>"` is the dedicated deep-research command. Preserve the raw
+   fetched page as `_originals/<slug>.html` so phase 3 can re-convert if needed.
+2. **exa-search** (alt — technical/academic long-tail). Positional query; run via
+   `uv run --with exa-py`. Needs `EXA_API_KEY`.
    ```bash
-   mcp2cli exa search --query "..." --num-results 5
-   mcp2cli exa contents --ids <result-id>
+   uv run --with exa-py python scripts/exa_search.py "<query>" \
+     --num-results 5 --category "research paper" --text \
+     -o "_originals/<slug>.exa.json"
+   # batch-extract full text from specific URLs (SDK client.get_contents)
+   uv run --with exa-py python scripts/exa_extract.py "<url1>" "<url2>" \
+     --text -o "_originals/<slug>.exa.json"
    ```
+   For strictly academic results combine `--category "research paper"` with an
+   `--include-domains arxiv.org,nature.com,pubmed.ncbi.nlm.nih.gov` allowlist.
 3. **WebFetch on the canonical URL.** For landing pages that reliably serve the
    PDF behind a redirect.
 4. **Direct curl** for PDFs. The publisher URL often returns the abstract page,
@@ -125,11 +141,24 @@ Flag failures in `_dispatch/conversion-failures.txt` rather than silently procee
 **TurboVault is the destination for the metadata MD (phase 4), not the converter.**
 TurboVault has vault-write tools but no PDF/HTML→MD tools. Don't confuse the layers.
 
-## Phase 4 — METADATA NOTE
+## Phase 4 — INGEST (metadata note via TurboVault)
 
 For each item, write `<slug>.md` (the metadata note, separate from
-`<slug>-fulltext.md`). YAML frontmatter spec — derived from the
-microstructure-papers cluster format:
+`<slug>-fulltext.md`) **through TurboVault** so vault conventions, the link graph, and
+frontmatter validation stay honored:
+
+```bash
+mcp2cli --mcp http://turbovault:9004/sse write_note \
+  --args 'path=__raw/<topic>/<slug>.md' --args 'body=<full note markdown>'
+# then lint/normalize the frontmatter block (drop nulls, order keys, validate types):
+mcp2cli --mcp http://turbovault:9004/sse frontmatter_set \
+  --args 'path=__raw/<topic>/<slug>.md' --args 'key=cluster' --args 'value=<cluster>'
+```
+
+**Merge, never clobber:** `read_note` (or `frontmatter_get`) first; if the note
+exists, merge fields and flag conflicts in `_dispatch/merge-conflicts.txt`. If
+TurboVault is unreachable, degrade explicitly to a plain `Write` and note it. YAML
+frontmatter spec — derived from the microstructure-papers cluster format:
 
 ```yaml
 ---
@@ -208,9 +237,11 @@ After all metadata notes exist, do one pass over the corpus to wire them togethe
    `topics:` frontmatter is a good first cut). For papers, also include canonical
    lineage links.
 4. **Resolution-rate check.** Count wikilinks that resolve to an existing
-   `<slug>.md` vs. those that don't. The 2026-05-20 microstructure run hit 97%
-   (101/104). Below 90% means too many stub references — add the missing papers in
-   a follow-up batch or convert them to plain-text citations.
+   `<slug>.md` vs. those that don't — `mcp2cli --mcp http://turbovault:9004/sse
+   link_graph` (and `backlinks`) is authoritative for what actually resolves in the
+   vault. The 2026-05-20 microstructure run hit 97% (101/104). Below 90% means too
+   many stub references — add the missing papers in a follow-up batch or convert them
+   to plain-text citations.
 5. **Collision audit.** Two papers with the same first-author + year is the main
    hazard. The dispatcher should have caught it in phase 1, but verify:
    `ls __raw/<topic>/*.md | awk -F'-' '{print $1"-"$2"-"$3}' | sort | uniq -c | awk '$1 > 1'`

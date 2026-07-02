@@ -2,18 +2,19 @@
 name: web-scrape-ingest
 version: 0.1.0
 description: >
-  End-to-end pipeline that turns a topic, URL/DOI list, or search query into a
-  curated vault of OFM (Obsidian-flavored Markdown) notes — raw originals
-  preserved, metadata frontmatter, [[wikilinks]] wiring related items, an
-  InfraNodus ontology over the corpus, and a generated INDEX.md. Use when the user
-  says "scrape and ingest", "build a vault/knowledge base from these URLs/papers",
-  "research pipeline", "ingest papers into Obsidian", "harvest documentation for",
-  or any phrasing meaning "go fetch this content and turn it into structured
-  knowledge in my vault". Routes through the mcp2cli gateway (parallel-web,
-  exa-mcp, turbovault, infranodus, markitdown). Do NOT use for a single-URL fetch
-  with no vault wiring (use parallel-web extract or WebFetch) — this skill is
-  overkill for one URL. For the slash-command flavor of the same pipeline, the
-  sibling scrape-ingest-organize skill is equivalent; new work should call this.
+  Turns a topic, URL/DOI/arXiv list, or search query into a DEEP curated corpus under
+  `__raw/<topic>/` in the Obsidian vault: raw originals preserved, one metadata note
+  per source (frontmatter + VERBATIM abstract + why-it-matters), [[wikilinks]] between
+  related items, an InfraNodus ontology, and a cluster-grouped INDEX.md. Scrapes via
+  the parallel-web and exa-search skills (their Python CLIs — NOT an mcp2cli/exa-mcp
+  route), then formats, lints, and organizes into the vault via turbovault MCP tools.
+  Use for "scrape and ingest these papers/URLs", "build a knowledge base from these
+  DOIs", "harvest documentation for X", "ingest papers into Obsidian", or any ask for
+  a slug-keyed, cross-linked, ontology-backed corpus. Do NOT use
+  for a single-URL fetch with no vault wiring (use parallel-web extract or WebFetch),
+  nor for the lighter /forge flavor that dumps N search hits into the 00-raw inbox
+  with auto-tagging (use the sibling scrape-ingest-organize, not equivalent — this
+  builds the deep per-source corpus).
 allowed-tools: Read, Write, Edit, Bash, Skill, Agent, AskUserQuestion, WebFetch, WebSearch
 license: HyperFrequency original
 ---
@@ -44,40 +45,51 @@ search query, produces a curated `__raw/<topic>/` tree inside the vault with:
   repo's README, link them." The wikilink pass pairs the paper and repo slugs.
 - **DOI / arXiv batch** — "here are 40 DOIs, build me a vault." Bypasses search.
 
-**When NOT to use:** single-URL fetch with no vault wiring → use `parallel-web`
-extract or `WebFetch`. This skill is overkill for one URL.
+**When NOT to use:**
+- Single-URL fetch with no vault wiring → use `parallel-web` extract or `WebFetch`.
+  This skill is overkill for one URL.
+- The lighter flavor that just fans out N searches and dumps hits into the `00-raw/`
+  inbox with turbovault auto-tagging (no per-source metadata notes, no verbatim
+  abstracts, no slug-keyed corpus) → use the sibling `scrape-ingest-organize`. The
+  two are **not** equivalent: this skill builds the deep, cross-linked, per-source
+  corpus under `__raw/<topic>/`.
 
-## Required tooling — unified gateway contract
+## Required tooling — verified interfaces
 
-When operating, **always** route through the unified mcp2cli gateway. See the
-`neuro-harness` skill (`neuro-quant-agent-skills/neuro-base/`) for the full
-endpoint table. Concretely:
+Two distinct layers. **Scraping** goes through the `parallel-web` / `exa-search`
+skills, which are **Python-CLI skills** (they call their vendor SDKs directly — there
+is NO `mcp2cli parallel-web` / `mcp2cli exa` route; do not invent one). **Vault
+writes/format/lint/organize + ontology** go through the mcp2cli gateway to the
+`turbovault` and `infranodus` MCP servers. See the `neuro-harness` skill for the full
+endpoint table. Real invocations (verified 2026-07-02 against each skill's scripts):
 
-| Phase | Use | Why |
+| Job | Tool (skill) | Real invocation |
 | --- | --- | --- |
-| Search (default) | `mcp2cli parallel-web search` or `parallel-web` skill | Synthesized summaries + citations + extract API |
-| Search (alt, long-tail technical) | `mcp2cli exa search` if installed | Better at code/docs; needs `EXA_API_KEY` |
-| Single-URL fetch | `WebFetch` first, then `curl` for PDFs | Cheapest, no rate limit |
-| Convert PDF/HTML → MD | `markitdown <file> -o <out>` (`markitdown` skill) | Token-efficient, preserves structure |
-| Vault writes | `mcp2cli turbovault write_note` (`turbovault` skill) | Honors vault conventions, updates link graph |
-| Ontology over corpus | `mcp2cli infranodus generate_knowledge_graph` (`infranodus` skill) | Local OSS engine; no per-request fees |
+| Scrape — general web / news / market (default) | `parallel-web` | `python scripts/parallel_web.py search "<query>" --model base --json -o out.json` (deep: `research`; verify one URL: `extract "<url>" --full-content`). Needs `PARALLEL_API_KEY`. |
+| Scrape — technical / academic / long-tail | `exa-search` | `uv run --with exa-py python scripts/exa_search.py "<query>" --num-results N --category "research paper" --text -o out.json`; batch URL pull: `exa_extract.py <url…> --text`. Needs `EXA_API_KEY`. |
+| Single known URL / PDF | `WebFetch`, then `curl` for PDFs | Cheapest, no key, no rate limit. |
+| Convert local PDF/HTML → MD | `markitdown` | `markitdown <file> -o <slug>-fulltext.md` — only when the scrape API did NOT already return clean text. |
+| Ingest + format into vault | `turbovault` MCP | `mcp2cli --mcp http://turbovault:9004/sse write_note --args 'path=…' --args 'body=…'`; frontmatter via `frontmatter_set`. |
+| Lint / organize corpus | `turbovault` MCP | `frontmatter_get`/`frontmatter_set`, `tag_list`/`tag_filter`, `link_graph`, `backlinks`. Full 47-tool list: `mcp2cli --mcp http://turbovault:9004/sse --list`. |
+| Ontology over corpus | `infranodus` MCP | `mcp2cli --mcp http://infranodus-mcp:9005/sse generate_knowledge_graph …`. Local OSS engine; no per-request fees. |
 
-- **Do not** scrape directly with `requests` / `httpx` when a gateway route exists.
+- **Do not** scrape directly with `requests` / `httpx` — route through `parallel-web`
+  or `exa-search` so results stay saved + citable.
 - **Do not** call `infranodus.com` — the local engine is pinned (user memory
   `project_infranodus_local_only.md`).
-- If the gateway is unreachable, degrade **explicitly**: announce the degradation,
-  then fall back to `WebFetch` + `curl` + local `markitdown` CLI. Never silently
-  bypass.
+- If a scrape key is missing or a gateway is unreachable, degrade **explicitly**:
+  announce it, then fall back to `WebFetch` + `curl` + local `markitdown` CLI, and
+  write notes with plain `Write` if turbovault is down. Never silently bypass.
 
 ## Pipeline overview
 
 ```
 INPUT (topic | source-list | search-query)
   └─ 1 DISPATCH   → split work across N parallel agents (default 6)
-  └─ 2 FETCH      → parallel-web → Exa → WebFetch → curl → arxiv; save to _originals/
-  └─ 3 CONVERT    → markitdown <file> -o <slug>-fulltext.md (pandoc/pdfplumber fallback)
-  └─ 4 METADATA   → <slug>.md: frontmatter + VERBATIM abstract + why-it-matters
-  └─ 5 WIKILINKS  → name→slug index, replace bare citations, resolution-rate check
+  └─ 2 SCRAPE     → parallel_web.py / exa_search.py → WebFetch → curl → arxiv; save to _originals/
+  └─ 3 CONVERT    → markitdown <file> -o <slug>-fulltext.md (only if scrape API gave no clean text)
+  └─ 4 INGEST     → turbovault write_note: <slug>.md frontmatter + VERBATIM abstract + why-it-matters
+  └─ 5 WIKILINKS  → name→slug index, replace bare citations, resolution-rate check (turbovault link_graph)
   └─ 6 INFRANODUS → generate_knowledge_graph, save _ontology.md + _clusters.md
   └─ 7 INDEX      → INDEX.md grouped by cluster + stats
 ```
@@ -110,20 +122,26 @@ common-pitfall lists, and a worked end-to-end example are in
 
 ## References
 
-- **Primary tools** — `parallel-web` (search + extract), Exa MCP (alt long-tail
-  search), `markitdown` skill / Microsoft markitdown CLI (file → MD), `turbovault`
-  skill (vault writes/backlinks), `infranodus` skill (local OSS knowledge graph),
-  `neuro-harness` skill (gateway endpoint registry — canonical), `forge` skill
+- **Primary tools** — `parallel-web` skill (`parallel_web.py search|research|extract`,
+  needs `PARALLEL_API_KEY`), `exa-search` skill (`exa_search.py` / `exa_extract.py` via
+  `uv run --with exa-py`, needs `EXA_API_KEY`; best for technical/academic long-tail),
+  `markitdown` skill / Microsoft markitdown CLI (file → MD), `turbovault` skill (vault
+  write/format/lint/organize + backlinks), `infranodus` skill (local OSS knowledge
+  graph), `neuro-harness` skill (gateway endpoint registry — canonical), `forge` skill
   (slash-command router over the gateway).
 - **Fallbacks** — `WebFetch`/`WebSearch` built-ins, `curl` (PDF download), `pandoc`
   (HTML→MD when markitdown empty), `pdfplumber`/`pdftotext` (image-based PDFs),
   GNU `wget --mirror` (whole-site harvests, not default), `scrapy` (production crawls).
-- **Sibling skills** — `scrape-ingest-organize` (slash-command flavor of this
-  pipeline; new work should call `/web-scrape-ingest`), `infranodus` /
-  `infranodus-cli` (ontology pass), `markitdown`, `turbovault`, `parallel-web`.
+- **Sibling skills** — `scrape-ingest-organize` (the lighter `/forge`-composition
+  flavor: fan-out search → `00-raw/` inbox → turbovault auto-tag → infranodus; use it
+  for quick dumps, this skill for the deep per-source corpus), `infranodus` /
+  `infranodus-cli` (ontology pass), `markitdown`, `turbovault`, `parallel-web`,
+  `exa-search`.
 - **Canonical worked output** —
   `$HOME/Vaults/neuro-quant-vault/__raw/microstructure-papers/INDEX.md`
   (108 papers, 97% wikilink resolution). `$HOME/Vaults/CLAUDE.md` — vault
   conventions (layout + YAML frontmatter schema).
-- **Last cross-checked:** 2026-05-24 (markitdown CLI flags verified via Context7
-  `/microsoft/markitdown`; gateway endpoints verified against `neuro-harness`).
+- **Last cross-checked:** 2026-07-02 (parallel-web `parallel_web.py` and exa-search
+  `exa_search.py`/`exa_extract.py` CLIs verified against their skill scripts;
+  turbovault tool set verified against `forge/references/server-registry.md`;
+  markitdown flags via Context7 `/microsoft/markitdown`).

@@ -1,21 +1,21 @@
 ---
 name: vectorbt
 description: >
-  Vectorized backtest AUTHORING + analysis with vectorbt / vectorbt-pro:
+  Vectorized PARAMETER SWEEPS + fast strategy screening with vectorbt(-pro):
   IndicatorFactory indicators, Portfolio.from_signals / from_orders /
   from_order_func, broadcast parameter sweeps, Splitter / CVSplitter
-  walk-forward, and Data loaders (Binance/CCXT/YF/Polygon). Use to write
-  or debug a vectorbt backtest. Trigger even without "vectorbt" on
-  "backtest this strategy" (vectorized), "parameter sweep",
+  walk-forward, and Data loaders (Binance/CCXT/YF/Polygon). Use to sweep
+  parameters and check whether a strategy plausibly has edge — NOT for
+  real backtests. Trigger without "vectorbt" on "parameter sweep",
   "IndicatorFactory", "from_signals", "PortfolioOptimizer", "Splitter
-  walk-forward", or numpy/pandas backtest infra. For the event-driven
-  backtest ENGINE / live / Hyperliquid use nautilus-trader; for porting /
+  walk-forward", or numpy/pandas sweep infra. For real / event-driven
+  backtests, live, or Hyperliquid use nautilus-trader; for HFT / MBO
+  order-book backtests use hftbacktest; for porting /
   "Rust or Pine version" use strategy-translator; for walk-forward EPOCH
   / WFE / overfitting-epoch use adaptive-wfo-epoch; for "is this Sharpe
   real" / PBO / purged CV use model-evaluation; for tearsheet / MAE /
-  leverage use tearsheet-generator (quantstats-rs); for comparing to an
-  Optuna baseline or verifying a backtest use strategy-verify; for
-  VPIN/OFI/L2 order-flow use microstructure-analyst.
+  leverage use tearsheet-generator; for verifying a backtest use
+  strategy-verify; for VPIN/OFI/L2 order-flow use microstructure-analyst.
 version: "1.0.0"
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent
 license: "Apache-2.0 + Commons Clause (vectorbt); proprietary (vectorbt-pro)"
@@ -28,14 +28,13 @@ metadata:
 # vectorbt / vectorbt-pro
 
 This skill covers the **authoring and analysis** of vectorbt backtests —
-distinct from `/strategy-translator` which handles cross-framework ports.
-If the user hands you a Pine script to translate, delegate. If they hand
-you a strategy idea / market thesis / research paper and ask for a
-vectorbt implementation, that's this skill.
+distinct from `/strategy-translator` (cross-framework ports). Hand a Pine
+script to translate → delegate; a strategy idea / thesis / paper to
+implement in vectorbt → this skill.
 
 Both vectorbt (vanilla, Apache 2 + Commons Clause) and vectorbt-pro
 (paid, proprietary) are covered. State which variant you assume in the
-first line of output — their APIs differ (see `references/pro-vs-vanilla.md`).
+first line of output — their APIs differ (`references/pro-vs-vanilla.md`).
 
 ## When to use
 
@@ -61,49 +60,32 @@ order-flow indicators — see the cross-link table below.
 
 vectorbt is **NumPy-first**. Every input — prices, signals, sizes, fees
 — is a 2D array where rows are time steps and columns are strategy
-instances (parameter combinations, universe constituents, or both).
-When you run `vbt.MA.run(price, window=[10, 20, 50])` on a single price
-series, you get a DataFrame with three columns, one per window. When
-you compute `fast.ma_crossed_above(slow)`, the comparison broadcasts
-across all column pairs and returns another DataFrame of boolean
-masks — one entry/exit pair per parameter combo. This flows directly
-into `Portfolio.from_signals`, which runs the entire simulation in one
-compiled Numba loop.
-
-No Python per-bar iteration. You orchestrate arrays; Numba does the
-work. This is the whole game — every idiom below follows from it.
+instances (parameter combinations, universe constituents, or both). A
+parameter sweep is just extra columns: `vbt.MA.run(price, window=[10,
+20, 50])` returns three columns, comparisons broadcast across them, and
+`Portfolio.from_signals` runs the whole grid in one compiled Numba loop.
+No Python per-bar iteration — you orchestrate arrays, Numba does the
+work. Every idiom below follows from it.
 
 ## MANDATORY live lookups before emitting code
 
-**Preference order**, best source first:
-
-1. **VBT Pro's own MCP server** (`vectorbtpro.mcp_server`) — if
-   installed, query via `mcp__vectorbt-pro__search`,
-   `mcp__vectorbt-pro__get_source`, `mcp__vectorbt-pro__run_code`.
-   This is the INSTALLED version's actual API — zero version drift.
-   See `references/ai-workflows.md` for setup.
-2. **Context7 live doc queries** — covers vectorbt-pro + vanilla +
-   llms-full corpus. Second-best; snapshot may lag the installed version.
-3. **Static reference files** in this skill — last resort for patterns
-   that don't change between releases (mental model, pitfall catalogue).
-
 vectorbt releases frequently; defaults drift. Before emitting any
-non-trivial call, verify via the best available source above and cite
-the snippet heading in your Diff vs spec section.
+non-trivial call, verify via the best available source (in order) and
+cite the snippet heading in your Diff vs spec section:
 
-| Library | Context7 ID | Coverage |
-|---|---|---|
-| vectorbt-pro (llms-full corpus) | `/llmstxt/vectorbt_pro_pvt_4f8d7c01_llms-full_txt` | 13,932 snippets — use this by default |
-| vectorbt-pro (website docs) | `/websites/vectorbt_pro` | 392 snippets — lighter fallback |
-| vectorbt (vanilla) | `/polakowo/vectorbt` | 1,407 snippets |
-| vectorbt (vanilla website) | `/websites/vectorbt_dev` | 5,232 snippets |
+1. **VBT Pro's own MCP server** (`vectorbtpro.mcp_server`, if installed)
+   — the INSTALLED version's actual API, zero drift. Setup:
+   `references/ai-workflows.md`.
+2. **Context7** — vectorbt-pro llms-full corpus
+   (`/llmstxt/vectorbt_pro_pvt_4f8d7c01_llms-full_txt`, ~13.9k snippets,
+   default) or `/websites/vectorbt_pro`; vanilla `/polakowo/vectorbt`
+   and `/websites/vectorbt_dev`.
+3. **Static reference files** in this skill — last resort for patterns
+   that don't change between releases.
 
-Also consult the vault:
-```
-mcp__neuro-link-recursive__nlr_wiki_search  query: "vectorbt <specific concern>"
-```
-Vault hits ≥ 0.7 confidence supersede static guidance. If the vault
-surfaces a project-specific convention, use it.
+Also consult the vault via `mcp__neuro-link-recursive__nlr_wiki_search`
+(query `"vectorbt <concern>"`); hits ≥ 0.7 confidence supersede static
+guidance.
 
 ## Standard authoring workflow
 
@@ -117,21 +99,13 @@ blocks downstream decisions.
 
 ### 2. Load data
 
-Prefer VBT's `Data` loaders over yfinance directly — they cache,
-reshape, and handle multi-symbol uniformly.
-
-| Source | Class | Notes |
-|---|---|---|
-| Crypto (binance) | `vbt.BinanceData` | free, needs API key for high rate limits |
-| Crypto (ccxt-backed) | `vbt.CCXTData` | 100+ exchanges via ccxt |
-| US equities / ETFs | `vbt.YFData` | yfinance wrapper; cheap, inexact |
-| Institutional | `vbt.PolygonData` (pro) | needs polygon.io API key |
-| Alpaca | `vbt.AlpacaData` (pro) | needs alpaca creds |
-| Local file | `vbt.HDFData` / `vbt.CSVData` / `vbt.ParquetData` | deterministic for reviewable backtests |
-
-**For reviewable/reproducible backtests, prefer a cached local file.**
-Live downloads drift; a frozen parquet does not. State the cache policy
-in the first line of the emitted code as a comment.
+Prefer VBT's `Data` loaders (`BinanceData`, `CCXTData`, `YFData`,
+`PolygonData`/`AlpacaData` in Pro, file-backed `HDFData` / `CSVData` /
+`ParquetData`) over yfinance directly — they cache, reshape, and handle
+multi-symbol uniformly. For reviewable/reproducible backtests prefer a
+cached local file (a frozen parquet doesn't drift) and state the cache
+policy in the first line of the emitted code. Full loader table +
+caching guidance: `references/data-loading.md`.
 
 ### 3. Build signals / indicators
 
@@ -157,72 +131,38 @@ Pick the right constructor (in order of most-common to least):
 | `Portfolio.from_holding` | buy-and-hold baseline |
 | `Portfolio.from_order_func` | custom per-bar logic (Numba callbacks) — escape hatch |
 
-**Canonical `from_signals` call** — never omit any of these params
-without stating why:
-
-```python
-pf = vbt.Portfolio.from_signals(
-    close,
-    entries=entries,
-    exits=exits,
-    size=1.0,                       # fractional (not np.inf, not 100)
-    size_type="percent",            # version-check: 0-1 in vbt 0.26+, 0-100 earlier
-    fees=0.001,                     # 10 bps — state explicitly even if zero
-    slippage=0.0005,                # 5 bps — same
-    freq=close.index.inferred_freq or "1D",   # annualised stats depend on this
-    init_cash=10_000,               # matters for % metrics
-    # price=open_next,              # uncomment for next-bar-open fills
-)
-```
-
-See `references/portfolio-constructors.md` for the other three
-constructors, and `references/fill-timing.md` for the close-vs-next-bar-open
-decision tree.
+**Always pass `size`/`size_type`, `fees`, `slippage`, `freq`, and
+`init_cash` explicitly** — never omit one without stating why. The
+canonical `from_signals` call, the other three constructors, and the
+close-vs-next-bar-open fill decision live in
+`references/portfolio-constructors.md` and `references/fill-timing.md`.
 
 ### 5. Analyze
 
-Standard stats are on the portfolio object:
-
-```python
-pf.total_return()
-pf.sharpe_ratio()
-pf.max_drawdown()
-pf.trades.stats()              # per-trade level
-pf.positions.stats()           # per-position level
-pf.stats()                     # kitchen sink, pandas Series
-pf.returns_stats()             # returns-centric slice
-pf.plot().show()               # interactive Plotly tearsheet
-```
-
-For reportable outputs, emit `pf.stats()` + `pf.plot()` save. See
-`references/analysis.md` for custom metric patterns (rolling
-drawdown windows, regime-conditioned returns, etc.).
+Standard stats live on the portfolio object — `pf.stats()` (kitchen
+sink), `pf.returns_stats()`, `pf.sharpe_ratio()`, `pf.max_drawdown()`,
+`pf.trades.stats()`, `pf.plot().show()`. For reportable outputs, emit
+`pf.stats()` + a saved `pf.plot()`. Custom metric patterns (rolling
+drawdown windows, regime-conditioned returns, per-param ranking) are in
+`references/analysis.md`.
 
 ### 6. Optimize (if the user asked for it)
 
-| Method | Use for |
-|---|---|
-| Grid search via broadcasting | fast, exhaustive, <5 dims — just pass lists/ranges as params |
-| `vbt.Splitter` / `vbt.CVSplitter` (pro) | walk-forward, purged k-fold |
-| `PortfolioOptimizer` (pro) | target-weight / target-vol allocation |
-| External (optuna, ray tune) | high-dim Bayesian / distributed sweeps |
-
-See `references/optimization.md` for walk-forward recipes, overfit
-diagnostics, and integration with optuna / ray.
+Grid search via broadcasting (fast, exhaustive, <5 dims) for most cases;
+`vbt.Splitter` / `vbt.CVSplitter` (Pro) for walk-forward and purged
+k-fold; `PortfolioOptimizer` (Pro) for target-weight/target-vol; external
+optuna / ray for high-dim or distributed sweeps. Walk-forward recipes,
+overfit diagnostics, and optuna/ray integration: `references/optimization.md`.
 
 ## Validation — always verify the backtest isn't silently wrong
 
-Before returning a backtest, run at least:
-
-1. **Sanity on signal count** — print `entries.sum()`, `exits.sum()`.
-   If the strategy should fire twice a year and shows 200 signals,
-   you have a look-ahead or re-firing bug.
-2. **No-trade sanity** — `pf.trades.count()` should match expectation.
-3. **Equity curve shape** — if monotonically upward with no drawdowns,
-   suspect look-ahead.
-4. **Compare against reference if one exists** — if user provided a
-   Pine script or published backtest, run the validation recipe from
-   `references/validation.md` and cite the delta.
+Before returning a backtest, run at least: (1) signal-count sanity —
+print `entries.sum()` / `exits.sum()`; 200 signals for a twice-a-year
+strategy means a look-ahead or re-firing bug; (2) `pf.trades.count()`
+matches expectation; (3) equity-curve shape — monotonic-up with no
+drawdowns suggests look-ahead; (4) if the user gave a Pine/published
+reference, run `scripts/compare-pine-reference.py` and cite the delta.
+Full checklist + silent-failure catalogue: `references/validation.md`.
 
 State which validations ran and their outcomes at the bottom of the
 deliverable. Unvalidated backtests are flagged as incomplete by the
@@ -230,56 +170,39 @@ consortium judge.
 
 ## Anti-patterns
 
-- **Don't write a Python for-loop over bars.** If you're iterating per
-  bar, you're abandoning vectorbt's entire value prop. The escape hatch
-  is `Portfolio.from_order_func` with Numba callbacks — not Python loops.
-- **Don't hand-roll `.ewm()` when a VBT indicator exists.** VBT Pro NB
-  indicators default to Pine-compatible params; pandas doesn't.
-- **Don't claim `Portfolio.from_signals` fills at next-bar open by
-  default.** Default is the signal bar's CLOSE. For next-bar open, pass
-  `price=open_next` explicitly.
-- **Don't use `size=np.inf` for "100% of equity".** It's a
-  max-available sentinel with version-dependent behaviour. Use
-  `size=1.0, size_type="percent"`.
-- **Don't skip `freq=`** on `from_signals`. Annualised metrics depend
-  on it; silent default is ambiguous.
-- **Don't emit vectorbt-pro API without a Context7 citation.** The
-  llms-full corpus is the authoritative source; VBT Pro ships new
-  releases frequently.
-- **Don't cache-bust needlessly.** VBT's `cached_property` and
-  `cache_func` are load-bearing. Decorating with `@functools.lru_cache`
-  or similar interferes.
-- **Don't confuse vectorbt and vectorbtpro imports.** State which at
-  the top. `vbt.BBANDS` in vanilla ≠ `vbt.BBANDS` in Pro on every
-  param.
+- **No Python for-loop over bars** — the escape hatch is
+  `from_order_func` with Numba callbacks, not Python loops.
+- **Don't hand-roll `.ewm()` when a VBT indicator exists** — Pine-param
+  mismatch (`references/indicators.md`).
+- **`from_signals` fills at the signal bar's CLOSE, not next-bar open** —
+  pass `price=open_next` for next-bar (`references/fill-timing.md`).
+- **Don't use `size=np.inf` for "100% of equity"** — use `size=1.0,
+  size_type="percent"`; and never skip `freq=` (annualised metrics
+  depend on it).
+- **Don't emit vectorbt-pro API without a Context7 citation** — VBT Pro
+  ships new releases frequently.
+- **Don't cache-bust** (`@functools.lru_cache` over VBT's
+  `cached_property`/`cache_func`) or **confuse vanilla vs Pro imports** —
+  `vbt.BBANDS` differs between them.
 
-## Reference files
+## Bundled files
 
-Read the relevant ones for the task at hand. All under `references/`:
+Reference depth under `references/` — read the relevant one(s):
+`pro-vs-vanilla.md` (vanilla↔Pro API diffs), `indicators.md` (built-ins
++ NB calls), `indicator-factory.md` (custom indicators),
+`portfolio-constructors.md` (the four constructors + canonical
+`from_signals`), `fill-timing.md` (close vs next-bar open),
+`data-loading.md` (loaders + caching), `analysis.md` (metrics /
+tearsheets), `optimization.md` (grid / walk-forward / optuna),
+`validation.md` (correctness checks), `ai-workflows.md` (VBT Pro MCP).
 
-- `pro-vs-vanilla.md` — API differences between `vectorbt` and `vectorbtpro`
-- `indicators.md` — built-in indicators, parameter broadcasting, NB-level calls
-- `indicator-factory.md` — custom indicators via `IndicatorFactory`
-- `portfolio-constructors.md` — `from_signals` / `from_orders` / `from_holding` / `from_order_func` in depth
-- `fill-timing.md` — close vs next-bar open decision tree, pre-lagged signal pitfalls
-- `data-loading.md` — `BinanceData`, `CCXTData`, `YFData`, `PolygonData`, file-backed loaders, caching
-- `analysis.md` — portfolio metrics, tearsheets, custom reporting
-- `optimization.md` — grid search, walk-forward, CVSplitter, optuna/ray integration
-- `validation.md` — verifying correctness before returning a backtest
+Worked patterns under `examples/`: `signal-portfolio.md`,
+`custom-indicator.md`, `walk-forward.md`, `parameter-sweep.md`.
 
-Plus `examples/` for worked canonical patterns:
-- `examples/signal-portfolio.md` — standard entries/exits → `from_signals` flow
-- `examples/custom-indicator.md` — `IndicatorFactory` end-to-end
-- `examples/walk-forward.md` — Splitter-based WFO with metrics
-- `examples/parameter-sweep.md` — broadcasting-based grid search
-
-## Scripts
-
-Runnable helpers under `scripts/`:
-- `scripts/validate-backtest.py` — smoke-runs an emitted backtest file
-  and prints sanity metrics (`entries.sum()`, trade count, stats)
-- `scripts/compare-pine-reference.py` — runs the Pine-reference
-  comparison recipe for numeric equivalence checks
+Runnable helpers under `scripts/`: `validate-backtest.py` (smoke-runs an
+emitted backtest, prints sanity metrics), `compare-pine-reference.py`
+(numeric equivalence vs a Pine reference), `get-pvt-url.sh` (resolve the
+hash-rotating vectorbt.pro docs URL).
 
 ## Required env
 
@@ -308,11 +231,9 @@ This skill owns vectorized backtest authoring. Hand the rest off:
 
 ## Delegation
 
-If the user's request includes porting FROM Pine Script, delegate to
-`/strategy-translator` — that skill owns the translation contract
-(Diff vs source, fill-timing equivalence, pitfall catalogue). This
-skill's job begins AFTER the translation lands, or when the user is
-authoring a vectorbt backtest from scratch without a Pine source.
+If the request includes porting FROM Pine Script, delegate to
+`/strategy-translator` (it owns the translation contract); this skill's
+job begins after the translation lands, or when authoring from scratch.
 
 ## References
 
@@ -321,8 +242,7 @@ authoring a vectorbt backtest from scratch without a Pine source.
 - vectorbt-pro docs: https://vectorbt.pro/ — hash-rotating
   `pvt_<hash>`; resolve the live URL with `scripts/get-pvt-url.sh`.
 - vectorbt (vanilla): https://github.com/polakowo/vectorbt
-- Context7 corpora: see the live-lookup table under "MANDATORY live
-  lookups before emitting code" above.
+- Context7 corpora: see "MANDATORY live lookups" above.
 - License: vectorbt is Apache-2.0 + Commons Clause; vectorbt-pro is
   proprietary (paid). This skill's own content follows the repo LICENSE.
 - Last cross-checked: 2026-04-20 (against the `pvt_16ebf9ef` llms-full
