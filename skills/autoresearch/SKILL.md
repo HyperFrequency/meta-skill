@@ -128,23 +128,9 @@ When the outer loop decides to CONCLUDE:
 
 Proceed autonomously. If the ml-paper-writing skill suggests human collaboration points, adapt and keep going — produce the best draft you can. The human will review and provide feedback.
 
-## Research Discipline
+## Research Discipline & Quality
 
-Principles to enforce continuously — not tied to any specific phase:
-
-- **Lock before you run**: Commit your experiment protocol to git before executing. Never combine protocol + results in one commit.
-- **Confirmatory vs exploratory**: Results matching your locked protocol are confirmatory. Everything else is exploratory — interesting but requiring more skepticism.
-- **Negative results are progress**: A refuted hypothesis tells you something. Log what it rules out and what it suggests.
-- **Sanity check before analysis**: Verify training converged, baselines reproduce, and data is correct before trusting your primary metric.
-- **Return to literature when confused**: Don't guess — search (Exa for discovery, Semantic Scholar for ML/AI lookup, arXiv for preprints).
-- **Never stop**: Don't wait for human approval on routine decisions. Find the best path forward autonomously.
-- **Use whatever compute is available**: Adapt to the environment — local GPU, cluster, cloud, or just CPU. If no GPU, scale experiments down. Don't block on compute.
-
-## Quality Standards
-
-**Good**: hypotheses have mechanistic reasoning ("X because Y, predicting Z"), not just "try X"; findings.md builds a coherent narrative; negative results are recorded with what they rule out; the agent updates its model when experiments contradict expectations; progress reports tell a research story with compelling visualizations.
-
-**Bad**: pure hyperparameter sweeps without interpretation; findings.md is just experiment logs copy-pasted; agent never revisits assumptions after failures; optimizing metrics without understanding why changes work.
+Enforce continuously, not tied to any phase: **lock before you run** (protocol commit precedes results — see Git Protocol), **negative results are progress**, **sanity-check before analysis**, **return to literature when confused**, **never stop** on routine decisions, and **use whatever compute is available**. Aim for mechanistic hypotheses ("X because Y, predicting Z") and a findings.md that reads as a coherent narrative — not pure hyperparameter sweeps or copy-pasted logs. Full principles and the good/bad quality bar are in [references/research-discipline.md](references/research-discipline.md).
 
 ## When to Use vs Alternatives
 
@@ -158,4 +144,5 @@ Principles to enforce continuously — not tied to any specific phase:
 - [references/agent-continuity.md](references/agent-continuity.md) — per-platform /loop and cron detail
 - [references/progress-reporting.md](references/progress-reporting.md) — presentation templates
 - [references/skill-routing.md](references/skill-routing.md) — complete domain-skill routing map
+- [references/research-discipline.md](references/research-discipline.md) — full discipline principles + good/bad quality bar
 - [references/common-issues.md](references/common-issues.md) — troubleshooting (stalls, no GPU, papers, concluding)

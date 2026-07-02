@@ -17,7 +17,9 @@ Pick the reference before answering or coding:
 
 | User intent | Read |
 |---|---|
+| Orientation, what lives where in the docs | `references/overview.md` |
 | Install, authenticate, first run | `references/quickstart.md` |
+| Settings files, project trust, precedence | `references/settings.md` |
 | Day-to-day CLI usage, commands, modes, flags | `references/usage.md` |
 | Provider auth, API keys, cloud provider setup | `references/providers.md` |
 | Custom model entries, local models, proxies | `references/models.md` |
@@ -41,7 +43,7 @@ Pick the reference before answering or coding:
 
 ## Build-On-Pi Defaults
 
-Prefer the SDK for Node/TypeScript apps that need type safety, direct state access, in-process custom tools/extensions, or custom resource loading. Use `createAgentSession()` for a single stable session; use `createAgentSessionRuntime()` when the app must replace sessions through new/resume/fork/clone/import flows.
+Prefer the SDK for Node/TypeScript apps that need type safety, direct state access, in-process custom tools/extensions, or custom resource loading. Use `createAgentSession()` for a single stable session; use `createAgentSessionRuntime()` when the app must replace sessions through new/resume/fork/clone/import flows. For deep SDK-internals debugging (defineTool/customTools, DefaultResourceLoader, AuthStorage, ModelRegistry, SDK-vs-RPC mismatches), hand off to the sibling `pi-coding-agent-sdk` skill.
 
 Prefer RPC mode when the client is not Node.js, needs process isolation, or wants a language-agnostic JSONL protocol. Start with `pi --mode rpc --no-session` for stateless subprocess integration, then add session flags when persistence matters.
 

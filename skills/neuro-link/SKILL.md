@@ -71,3 +71,7 @@ This matters because the user typically uses `/neuro-link` as a status probe whi
 
 - `scripts/status.sh` — fast health probe (heartbeat + Qdrant + Neo4j + MCP)
 - `scripts/log.sh` — append-only log helper for `04-Agent-Memory/logs.md`
+
+## Prompts
+
+- `prompts/new-spec-to-task.md` — distils a new spec dropped in `00-neuro-link/` into a single `/job-scanner`-dispatchable task via `emit_task_spec`. Used by the `tasks` subcommand and the plugin dispatcher.

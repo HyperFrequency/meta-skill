@@ -31,6 +31,10 @@ map of what LangChain is for and how to start.
 - **Semantic Kernel** — Microsoft ecosystem.
 - **Provider SDK directly** (`anthropic`, `openai`) — a single LLM call with no chains, agents, or retrieval doesn't need LangChain.
 
+Sibling skills in this collection: the `llamaindex` skill for document-Q&A-first
+retrieval, the `rag` skill for framework-agnostic RAG patterns, and the `crewai`
+/ `autogpt` skills for their respective agent frameworks.
+
 ## Version note (read first)
 
 LangChain **v1 (1.x)** is the current line. APIs changed substantially from 0.x:

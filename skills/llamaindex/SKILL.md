@@ -24,7 +24,8 @@ them with RAG. This file is a router — concept overview plus pointers into
 - Structured data extraction from documents
 
 **Use something else when:**
-- **LangChain** — general-purpose agents, complex multi-step workflows
+- **LangChain** — general-purpose agents, complex multi-step workflows (sibling skill `langchain`)
+- **RAG design/eval** at the pattern level, framework-agnostic → sibling skill `rag`
 - **Haystack** — production search pipelines
 - **txtai** — lightweight semantic search
 - **Chroma / FAISS directly** — you only need raw vector storage, no LLM layer

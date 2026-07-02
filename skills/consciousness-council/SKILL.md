@@ -109,6 +109,8 @@ The user can customize the Council:
 - **"Devil's advocate mode"** → Every member must argue AGAINST whatever seems most intuitive
 - **"Rounds mode"** → After initial positions, members respond to each other for a second round
 
+For domain-specific member line-ups (startup, hiring, crisis, investment, etc.), custom archetype creation, deliberation scoring (CQS), multi-round deliberation, and Silent Council mode, see [references/advanced-configurations.md](references/advanced-configurations.md).
+
 ## What Makes a Good Council Question
 
 The Council works best on questions where:

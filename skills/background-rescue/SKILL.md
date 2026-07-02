@@ -1,6 +1,7 @@
 ---
 name: background-rescue
-description: "Rescue a stalled, stuck, context-rotted, hallucinating, or looping workflow node or goal-loop node by re-grounding it. Use this skill whenever a workflow node or goal-loop iteration has gone off the rails — it has stalled and stopped making progress, its context has rotted (lost track of the original goal), it has started hallucinating results that were never produced, or it is stuck repeating the same failing step in a loop. Trigger on phrases like \"this node is stuck\", \"the run stalled\", \"the agent is hallucinating\", \"it's looping on the same step\", \"context rot\", \"rescue this node\", \"get the goal loop unstuck\", or any background watchdog that detects a node has diverged from its goal. This is a lateral pass: it does not finish the work itself — it produces a single clean re-grounding prompt that hands control back to the original, stronger reasoning agent."
+version: 0.1.0
+description: "Rescue a stalled, stuck, context-rotted, hallucinating, or looping workflow node or goal-loop node by re-grounding it. Use this skill whenever a workflow node or goal-loop iteration has gone off the rails — it has stalled and stopped making progress, its context has rotted (lost track of the original goal), it has started hallucinating results that were never produced, or it is stuck repeating the same failing step in a loop. Trigger on phrases like \"this node is stuck\", \"the run stalled\", \"the agent is hallucinating\", \"it's looping on the same step\", \"context rot\", \"rescue this node\", \"get the goal loop unstuck\", or any background watchdog that detects a node has diverged from its goal. This is a lateral pass: it does not finish the work itself — it produces a single clean re-grounding prompt that hands control back to the original, stronger reasoning agent. Do NOT use for a node still making progress, or to do/debug/finish the work yourself — only to re-ground a diverged node."
 ---
 
 # Background Rescue
@@ -81,3 +82,9 @@ NEXT STEP: <one concrete, actionable move>
 - **One prompt, not a plan.** You produce a single re-grounding prompt, not a multi-step roadmap. The original agent does the planning.
 - **Stay lateral.** You re-ground and hand off; you do not finish the task. Resist the pull to "just fix it" — your value is the clean context, not the labor.
 - **Anchor to the original goal**, never to the node's drifted-into objective.
+
+## Boundaries and related skills
+
+- **`relentless-inception`** — its rescue mode resurrects stalled long-running orchestrator runs with a fresh-context consortium. This skill is the lightweight, single-node version of that idea: one background pass, one re-grounding prompt. When an orchestrated multi-agent run stalls, relentless-inception's own rescue handles it; use this skill for a lone diverged node or goal-loop iteration.
+- **`swe-loop` / `plan-loop` / `optimize-loop`** — these run the iterative work. When one of their iterations diverges, this skill re-grounds it and hands control back — it does not replace the loop.
+- **Do NOT reach here** for a node still making progress, or when the fix is to actually debug/finish the work — that stays with the original agent or the relevant loop skill.

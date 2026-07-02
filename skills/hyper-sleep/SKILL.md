@@ -30,14 +30,14 @@ For each knowledge gap (isolated cluster or stale hub):
 
 1. Delegate to `/crawl-ingest-update` with `LLM_assisted=Y` to propose 1–3 authoritative sources from the allowlist.
 2. Ingest via the right pipeline (arXiv / ar5iv / Stacks / Marker depending on source type — see that skill's references).
-3. Synthesize via `/wiki-curate` with `confidence_ceiling: 0.6` flag.
+3. Synthesize via `llm-wiki` (curation pass) with a `confidence_ceiling: 0.6` constraint.
 4. If the synthesis's computed confidence exceeds 0.6, don't write to `02-KB-main/` — stage in `05-insights-HITL/pending-curation/YYYY-MM-DD/<slug>.md` with the full draft, citations, and a decision prompt.
 
 ### Ontology refresh
 
 For each topic that has gained ≥3 new wiki pages in `02-KB-main/<topic>/` since last ontology refresh:
 
-1. Invoke `/reasoning-ontology <topic>` with `--refresh --mode=append-only`.
+1. Invoke `ontology-creator` for `<topic>` in refresh, append-only mode.
 2. The `append-only` mode forbids the ontology skill from *deleting* existing triples — it can only add new ones or raise their confidence. Contradiction resolution (which might require a delete) is HITL-only.
 
 ### Folder-delegated improvements
