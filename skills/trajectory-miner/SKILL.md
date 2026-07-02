@@ -1,141 +1,132 @@
 ---
 name: trajectory-miner
-version: 0.1.0
-description: "Batch scanner over a directory of LLM session transcripts (Claude Code *.jsonl, Codex rollout *.jsonl) or agent logs that mines for recurring ANTI-PATTERNS and FAILING TRAJECTORIES — loops, context rot, goal drift, hallucinated/never-produced results, tool-error cascades, rate-limit stalls, and refusals — clusters them, and emits a report of anti-patterns plus representative failing trajectories to feed harness improvement. Use when you have many past sessions/logs and want to find SYSTEMIC failure modes across the corpus, build a reflective dataset for prompt/harness evolution, or answer 'what keeps going wrong in my agent runs'. Do NOT use to rescue ONE live stuck node (use background-rescue), to run the improvement loop that consumes this report (use recursive-self-improvement / autonomous-orchestrator), or to debug a single known bug in one transcript — this is corpus-level, read-only mining, not a fix."
-license: HyperFrequency original. Optional GEPA handoff wraps the MIT-licensed `gepa`/gepars crate.
+version: 0.2.0
+description: "Loop-3 corpus miner over PAST agent runs. Ingests OTel spans, first-party .traj artifacts, Claude Code *.jsonl, and lightspeed/forgecode logs; scrubs secrets/injection/PII before storage; segments sessions into phases (Recon/Change/Validation/WrapUp) and gates junk; runs VERSIONED Scanners (doom loops, stuck patterns, context-degradation, rollback/correction, recursion + cost anomalies); clusters incidents into versioned AntiPatterns ('NEVER X when Y') and Issues, then publishes a VERSIONED anti-pattern registry consumed by skill heals, prompt mutations, judge criteria, and rescue triggers, routing uncertain ones to hitl-interview. Use when you have many past sessions/traces and want SYSTEMIC failures mined for harness improvement, or to triage a benchmark run after the fact. NOT for rescuing ONE live stuck node (background-rescue), running the improvement loop that consumes the registry (recursive-self-improvement), or debugging one known bug in a transcript — corpus-level, read-only, ends at the registry."
+license: HyperFrequency original. StuckDetector heuristics re-implemented from the OpenHands algorithm (described, not copied). Optional reflective-mutation handoff targets the MIT gepa/gepars crate's public API.
 ---
 
 # Trajectory Miner
 
-Read a **corpus** of agent transcripts and surface the failure modes that recur
-across it. You are a read-only miner: you parse many sessions, detect
-anti-pattern *incidents*, cluster them into named failure modes, rank by
-frequency and severity, and emit a report with representative failing
-trajectories. You never edit the agent, never rescue a live run, and never
-fabricate an incident the logs don't support.
+Read a **corpus** of past agent runs and surface the failure modes that recur
+across it. You are a read-only miner: you ingest and scrub many sessions, detect
+failure *incidents* deterministically, cluster them into named **AntiPatterns**
+and **Issues**, and publish a **versioned anti-pattern registry** with
+representative failing trajectories. You never edit the agent, never rescue a
+live run, and never fabricate an incident the traces don't support.
 
-The output feeds a *different* system — a harness-improvement loop, a reflective
-prompt optimizer, or a human reviewer. Your job ends at the report.
+The registry feeds *other* systems — skill-heal loops, reflective prompt
+optimizers, LLM-judge panels, rescue watchdogs, and human reviewers. **Your job
+ends at the registry.** You produce the failure signal; someone else applies the
+fix.
 
 ## When to use vs. when not
 
 Use this skill when:
-- You point at a directory of `*.jsonl` transcripts (or agent logs) and ask
-  "what keeps going wrong", "find recurring failures", "mine my sessions".
-- You want a **reflective dataset** of failing trajectories to feed prompt/harness
-  evolution (see `references/gepa-handoff.md`).
-- You are triaging a benchmark run or an overnight autonomous run *after the fact*.
+- You point at a directory/store of past runs (OTel traces, `.traj`, Claude Code
+  `*.jsonl`, lightspeed/forgecode logs) and ask "what keeps going wrong", "find
+  recurring failures", "mine my sessions", "build me an anti-pattern registry".
+- You want a durable, queryable signal to **drive** harness improvement.
+- You are triaging a benchmark or overnight autonomous run *after the fact*.
 
 Do NOT use this skill for:
 - **One live stuck node** — re-grounding a single diverged run is `background-rescue`.
-- **Running the fix loop** that consumes this report — that is
-  `recursive-self-improvement` (consortium-graded, HITL) or
-  `autonomous-orchestrator` (harness hill-climbing).
+- **Running the fix loop** that consumes the registry — `recursive-self-improvement`
+  (graded, HITL) or `autonomous-orchestrator` (harness hill-climbing).
 - **Debugging one known bug in one transcript** — just read it; this is
   corpus-level statistics, not single-case debugging.
 
-## Inputs
+## The Loop-3 pipeline
 
-- `path` — a directory (scanned recursively) or a glob of transcript files.
-- `format` — `claude` (Claude Code `~/.claude/projects/<slug>/<uuid>.jsonl`),
-  `codex` (Codex `~/.codex/**/rollout-*.jsonl`), or `auto` (sniff per file).
-- `since` / `until` — optional timestamp bounds to restrict the corpus.
-- `min_support` — minimum incident count for a cluster to be reported (default 2;
-  a one-off is noise, a pattern repeats).
+Five stages, strictly ordered. Do not skip ahead — scanners on an unsegmented,
+unscrubbed stream cluster on the wrong fields and leak secrets. Each stage routes
+to a reference for the concrete field maps, schemas, thresholds, and formulas.
 
-Both transcript schemas — every field you parse — are documented in
-`references/transcript-schemas.md`. Do not guess field names; they differ
-sharply between the two formats.
+1. **INGEST + SCRUB** → `references/ingest-and-scrub.md`
+   Adapt all four sources — OTel GenAI spans, first-party `.traj` proto, Claude
+   Code `*.jsonl`, lightspeed/forgecode logs — into ONE normalized `TurnEvent[]`
+   contract. **Scrub before storage:** secret scanner, prompt-injection
+   quarantine, PII anonymizer. Nothing raw is persisted. Capture `goal_text`
+   (first user turn) and a stable `input_sig` per tool call.
 
-## Procedure
+2. **SEGMENT + GATE** → `references/segment-and-gate.md`
+   Label every event with a phase — **Recon / Change / Validation / WrapUp** —
+   and coalesce phase spans. Then score `session_quality ∈ [0,1]` and **gate out
+   junk** below `min_score` (default 0.3) before expensive scanning — but never
+   gate a short *failure* (refusal / cascade / quarantine still get scanned).
 
-Work in this order. Do not jump to clustering before the corpus is parsed and
-normalized, or the clusters will be built on the wrong fields.
+3. **SCAN** → `references/scanners.md`
+   Run each deterministic **Scanner** (a versioned criteria schema) over each
+   gated, segmented session: **doom loops** (`[A,A,A]` and `[A,B,C][A,B,C]`
+   signature cycles), **stuck patterns** (3+ monologue, 6+ ping-pong, context-
+   window-error loops — OpenHands StuckDetector), **context degradation**
+   (lost-in-middle / poisoning / distraction / confusion / clash), **rollback /
+   correction / failure signals**, and **infinite-recursion + cost anomalies**.
+   Every incident cites a real `turn_range` and its `criteria_version`.
 
-### 1. Enumerate and sniff the corpus
-List every candidate file under `path`. For `format: auto`, sniff each file by
-its first non-empty line: a Claude line has top-level `type` in
-`{user,assistant,system,summary}`; a Codex line has top-level `type` in
-`{session_meta,response_item,event_msg,turn_context}`. Skip files that parse as
-neither. Record file count, total lines, and any unparseable files — report
-them; never silently drop a whole session.
+4. **CLUSTER** → `references/cluster-and-act.md`
+   Group incidents by `(source_type, mode, failed-action similarity)` —
+   deterministic bucket first, embedding merge for fuzzy modes. Each cluster →
+   an **AntiPattern** `{rule:"NEVER X when Y", instead, severity,
+   confidence=n/(n+2)}` and an **Issue** `{cause, suggestedFix, tracesQuery,
+   severity, occurrences, firstSeen/lastSeen}`. Drop sub-`min_support` clusters
+   to an appendix.
 
-### 2. Normalize each session to a turn stream
-Reduce each file to an ordered list of typed events: `user_text`,
-`assistant_text`, `thinking`, `tool_call` (name + canonicalized input),
-`tool_result` (ok/error + content), plus timestamps. The mapping from raw
-blocks to this stream — including how tool errors, token counts, and stop
-reasons surface in each format — is in `references/transcript-schemas.md`.
-Capture the **first user turn** verbatim per session: it is the ground-truth
-goal that drift and hallucination are measured against.
+5. **ACT + REVIEW** → `references/cluster-and-act.md`
+   Publish confirmed patterns to the **versioned anti-pattern registry**
+   (append/supersede, provenance-tagged, re-derivable) consumed by **skill
+   heals, prompt mutations, judge criteria, and rescue triggers**. Uncertain or
+   high-constraint patterns start as `candidate` and hand off to **`hitl-interview`**
+   for human confirmation before promotion. This skill never applies a fix.
 
-### 3. Detect anti-pattern incidents per session
-Run the detectors in `references/anti-patterns.md` over each turn stream. Each
-detector emits zero or more **incidents** anchored to a session id and a turn
-range, with an `evidence` excerpt and a normalized `signature`. The taxonomy and
-concrete heuristics (loop/cycle detection on tool-call signatures, error-cascade
-runs, rate-limit/timestamp-gap stalls, refusal and hallucination regexes,
-goal-drift scoring) live there. **Never invent an incident** — every one must
-cite a turn range that actually exists in the file.
+## Versioning discipline (cross-cutting invariant)
 
-### 4. Cluster incidents into failure modes
-Group incidents across sessions using the two-stage method in
-`references/clustering-and-report.md`: first a deterministic bucket by
-`(failure_mode, tool, normalized_signature)`, then optional embedding-based
-merge for the fuzzy modes (refusals, drift) where surface text varies. Drop
-clusters below `min_support`.
+Everything downstream is only trustworthy because everything upstream is
+versioned. Record in the run header: `segmenter_version`, `gate_version`
+(+ `min_score`, `min_events`), each scanner's `criteria_version`, `min_support`,
+and the registry `schema_version`. Bumping a scanner's criteria does NOT
+retroactively rewrite incidents — old ones keep their version; the corpus is
+re-scanned deliberately and the registry records the transition. This is what
+makes "did fixing X actually reduce mode Y" answerable.
 
-### 5. Rank and pick representatives
-Score each cluster by frequency x severity x blast-radius (sessions affected).
-For each surviving cluster, select the single most representative failing
-trajectory — the incident whose evidence most cleanly shows the mode — and cut a
-minimal excerpt (goal + the diverging turns), not the whole session.
+## Boundaries & the miner's own failure modes
 
-### 6. Emit the report
-Write both a machine-readable `trajectory-report.json` and a human
-`trajectory-report.md` using the schema in
-`references/clustering-and-report.md`: per cluster, its name, count, severity,
-affected sessions, one representative excerpt, and a recommended harness fix.
-Do not apply the fix — hand the report off.
-
-### 7. (Optional) Emit a reflective dataset
-When the caller wants to *drive* prompt/harness evolution, also emit the failing
-trajectories as GEPA reflective records (`{inputs, generated_outputs,
-feedback}`) that the MIT `gepa`/gepars `ReflectiveMutationProposer` consumes.
-Mechanics and the exact record shape are in `references/gepa-handoff.md`.
-
-## Boundaries and failure modes of the miner itself
-
-- **Read-only.** Never modify transcripts, agent config, prompts, or skills.
-- **Evidence-bound.** No incident without a real, citable turn range. A cluster
-  you cannot point at is not reported.
-- **Corpus, not case.** A single failure below `min_support` is not an
-  anti-pattern; report it only in an appendix, never as a headline cluster.
-- **Schema drift.** Transcript formats evolve (new block types, renamed fields).
-  If a large fraction of lines fail to normalize, stop and report the parse rate
-  rather than mining a corrupt stream.
-- **Redaction.** Excerpts can contain secrets/PII from tool output. Truncate and
-  scrub obvious credentials before writing them into the report (see the
-  redaction note in `references/clustering-and-report.md`).
-- **Privacy of the handoff.** The GEPA reflective dataset carries raw trajectory
-  text; treat it as sensitive, same as the transcripts it came from.
+- **Read-only.** Never modify traces, agent config, prompts, or skills. You emit
+  a registry; consumers decide what lands.
+- **Evidence-bound.** No incident without a real, citable `turn_range`; no
+  AntiPattern below `min_support`. A cluster you cannot point at is not published.
+- **Corpus, not case.** A single failure is an appendix one-off, never a headline
+  pattern. `confidence=n/(n+2)` keeps small-n patterns humble.
+- **Scrub is non-negotiable and upstream.** If it can't run, ingest stops —
+  never persist or judge unscrubbed text. Quarantined injection content stays out
+  of every LLM-judged step.
+- **Schema drift.** Source formats evolve. If a large fraction of lines/spans fail
+  to normalize, stop and report the parse rate rather than mine a corrupt stream.
+- **False-positive-prone modes** (context-degradation, hallucination-flavored):
+  keep the excerpt, downgrade to `low` when unsure, and route to `hitl-interview`
+  rather than auto-confirm — over-eager promotion poisons every consumer at once.
 
 ## References
 
-- `references/transcript-schemas.md` — Claude Code and Codex JSONL field maps;
-  how to normalize both to one turn stream; parse commands.
-- `references/anti-patterns.md` — the failure-mode taxonomy and a concrete
-  detector (heuristic + regex + threshold) for each mode.
-- `references/clustering-and-report.md` — two-stage clustering, severity
-  scoring, report/JSON schema, redaction.
-- `references/gepa-handoff.md` — wrapping the MIT gepars crate: turning mined
-  failing trajectories into a GEPA reflective dataset.
+- `references/ingest-and-scrub.md` — the four source adapters (OTel, `.traj`
+  proto, Claude `*.jsonl`, lightspeed/forgecode), the `TurnEvent` contract,
+  `input_sig`, and the three-stage scrub pipeline.
+- `references/segment-and-gate.md` — phase segmentation and the session-quality gate.
+- `references/scanners.md` — the versioned `Scanner` trait, the `Incident`
+  schema, and the full detector catalog with thresholds.
+- `references/cluster-and-act.md` — clustering, `AntiPattern`/`Issue` shapes,
+  `confidence=n/(n+2)`, the versioned registry, its four consumers, and the
+  `hitl-interview` review handoff.
 
 ## Related skills
 
-- **background-rescue** — re-grounds ONE stuck/rotted/looping node live. This
-  skill finds those nodes in BATCH, after the fact, across many sessions.
-- **recursive-self-improvement** — consortium-graded, HITL improvement loop; a
-  natural consumer of this report.
+- **hitl-interview** — the REVIEW handoff: human confirmation of candidate
+  anti-patterns before they are promoted in the registry.
+- **background-rescue** — a live consumer (rescue triggers) and the inverse of
+  this skill: it re-grounds ONE stuck node in real time; this finds those nodes
+  in BATCH, after the fact.
+- **recursive-self-improvement** — graded, HITL loop that consumes the registry
+  (skill heals + prompt mutations) and decides what lands.
+- **meta-skill / skill-creator** — skill-heal consumers of the `NEVER X when Y`
+  rules. **judge-panel** — consumes anti-patterns as judge criteria.
 - **autonomous-orchestrator** — hill-climbs the harness itself; feed it the
-  mined anti-patterns as its improvement targets.
+  registry as its improvement targets.

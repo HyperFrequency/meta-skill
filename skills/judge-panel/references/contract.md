@@ -21,19 +21,32 @@ Everything downstream (topologies, aggregation, calibration) operates on these o
     ],
     "scale": { "min": 1, "max": 5 },        // 1-3 / 1-5 / 1-10; 1-5 is the default. See ce-advanced-evaluation.
     "evidence_required": true,               // MUST be true; ungrounded votes are rejected.
-    "pass_threshold": 3.5                    // optional; only for gate decisions.
+    "pass_threshold": 3.5,                   // optional; only for gate decisions.
+
+    // Optional autoevals-style CLASSIFY rubric: instead of a numeric scale, a judge picks a named
+    // choice; each choice maps to a fixed score. Makes verdicts stable and self-documenting.
+    "choice_scores": { "great": 1.0, "ok": 0.5, "bad": 0.0 },
+    "cot": true                              // ask the judge to reason step-by-step BEFORE choosing.
   },
 
   // The panel. >= 3 judges; prefer an ODD count so majority cannot deadlock.
   "judges": [
-    { "id": "j-opus",  "model": "claude-opus-4-8",  "temperature": 0, "weight": 1.0 },
+    // `variant` names an evolvable prompt variant of the judge (see SKILL.md "functions-with-variants").
+    // `composite` optionally points at a DAG-composite judge spec (see composite-judges.md).
+    { "id": "j-opus",  "model": "claude-opus-4-8",  "temperature": 0, "weight": 1.0, "variant": "strict-v3" },
     { "id": "j-gpt",   "model": "gpt-5.2",          "temperature": 0, "weight": 1.0 },
     { "id": "j-gemini","model": "gemini-3.1-pro",   "temperature": 0, "weight": 1.0 }
   ],
 
-  "topology":    "independent",              // "independent" | "cross_ranking" | "debate"
-  "aggregation": "median",                   // "majority" | "mean" | "median" | "trimmed"
-  "aggregation_params": { "trim_k": 1 },     // only for "trimmed"
+  "topology":    "independent",              // "independent" | "debate" | "chateval" | "council" | "hierarchical"
+  "aggregation": "median",                   // "median" | "mean" | "weighted" | "majority" | "borda"
+  "aggregation_params": { "trim_k": 1 },     // only for "trimmed"; ranking uses borda/copeland/median_rank
+
+  // Per-topology knobs (only the block for the chosen topology is read):
+  "debate":       { "rounds": 1, "epsilon": 0.25 },
+  "chateval":     { "mode": "simultaneous", "rounds": 2, "roles": ["expert","critic","public"] },
+  "council":      { "chairman": "gemini-3.1-pro" },
+  "hierarchical": { "uncertain_range": [0.4, 0.7] },   // episteme default; escalate to full panel inside it
 
   // Optional self-calibration. If present, per-judge reliability weights and bias offsets
   // learned from the ledger are folded into aggregation. See self-calibration.md.
@@ -72,14 +85,23 @@ Every judge returns this exact object. Parse strictly; a malformed vote is a *re
     }
     // ... one entry per rubric criterion
   ],
-  "score": 4.6,               // judge's own weighted rollup on the rubric scale
+  "cot": "...",               // optional chain-of-thought, emitted BEFORE `choice`/`score` when rubric.cot=true
+  "choice": "great",          // autoevals CLASSIFY mode only: the named choice picked
+  "score": 4.6,               // judge's own weighted rollup on the rubric scale (or choice_scores[choice])
   "decision": "PASS",         // gate mode: PASS/FAIL. tournament mode: rank or winner label.
-  "ranking": ["B","A","C"],   // cross_ranking topology only: this judge's ordering of candidates
+  "ranking": ["B","A","C"],   // ranking/council topologies only: this judge's ordering of candidates
   "confidence": 0.82,         // 0..1, the judge's self-reported certainty
   "abstained": false,
   "raw": "..."                // verbatim model text, kept for audit
 }
 ```
+
+**autoevals-style scoring.** A judge is essentially an autoevals `LLMClassifier`: a **template**
+(the scoring prompt), a **choice → score map** (`rubric.choice_scores`), and an optional **CoT**
+step. In CLASSIFY mode the judge outputs a `choice`; `score = choice_scores[choice]`. In SCALAR mode
+it outputs a numeric `score` on `scale`. Either way the evidence-before-score rule (invariant #1)
+holds: `cot`/`per_criterion.evidence` must precede the number. A judge whose verdict is itself a
+decision tree is a **DAG composite judge** — see [composite-judges.md](composite-judges.md).
 
 **Enforced at parse time:** `evidence` non-empty for every criterion (invariant #1); `score`
 within `scale`; `confidence` in `[0,1]`. Violations → reparse, then abstain.
@@ -91,15 +113,22 @@ within `scale`; `confidence` in `[0,1]`. Violations → reparse, then abstain.
   "mode": "gate",             // "gate" | "score" | "tournament"
   "decision": "PASS",         // PASS/FAIL, or winner id, or full ranked list for tournaments
   "score": 4.4,              // aggregated scalar per the chosen aggregator (null for pure ranking)
-  "confidence": 0.86,         // capped at 0.99; derived from agreement + calibration (see aggregation.md)
-  "agreement": 0.71,          // inter-judge concordance (Krippendorff alpha for ranks; 1-normalized-variance for scalars)
+  "confidence": 0.86,         // level "HIGH"|"MEDIUM"|"LOW" (episteme) OR scalar 0..0.99; from sigma + unanimity + calibration
+  "score_sigma": 0.21,        // stddev of judge scores — the dispersion the confidence level is computed from
+  "agreement": 0.71,          // inter-judge concordance (Krippendorff alpha for ranks; 1-normalized-sigma for scalars)
   "votes": [ /* every JudgeVote verbatim */ ],
   "dissent": [                // judges whose decision != panel decision
     { "judge_id": "j-gpt", "decision": "FAIL", "score": 2.0, "reason": "flagged an unsupported claim" }
   ],
   "abstentions": ["j-x"],     // judges that could not produce a valid vote
   "calibration_delta": 0.12,  // present only if a ledger is attached: |predicted - realized| running estimate
-  "metadata": { "topology": "independent", "aggregation": "median", "n_judges": 3, "seed": 7 }
+  "metadata": {
+    "topology": "independent", "aggregation": "median", "n_judges": 3, "seed": 7,
+    "rounds": 1,                // debate/chateval: rounds actually run
+    "moved": [],                // debate: judges that revised, with from/to/reason
+    "escalated": false,         // hierarchical: did the cheap judge trigger the full panel?
+    "synthesis": null           // council: the chairman's synthesized final answer
+  }
 }
 ```
 

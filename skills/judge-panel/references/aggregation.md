@@ -7,8 +7,9 @@ Aggregation turns `JudgeVote[]` into one `Verdict`. Choose the aggregator that m
 
 | Aggregator | Rule | Best when | Breaks when |
 |---|---|---|---|
-| **mean** | Weighted arithmetic mean of judge scores. | Rubric is well-calibrated, no rogue judges, you want smooth sensitivity. | One outlier judge drags the whole score. |
-| **median** | Middle score (average the two middles if N even). | **Default for scalars.** Robust to a single outlier. | Loses information when judges genuinely bimodal. |
+| **median** | Middle score (average the two middles if N even). | **Default for scalars.** Robust to a single outlier. Episteme's `JudgePool` default. | Loses information when judges genuinely bimodal. |
+| **mean** | Arithmetic mean of judge scores. | Rubric is well-calibrated, no rogue judges, you want smooth sensitivity. | One outlier judge drags the whole score. |
+| **weighted** | Weighted mean using the **effective weight** `w = w_caller · w_calibrated`. | Judges of known-unequal reliability (from the ledger) or caller priors. | Weights from a cold-start ledger entrench noise — see self-calibration.md. |
 | **trimmed** | Drop top `k` and bottom `k`, mean the rest. Requires N ≥ 2k+1. | N ≥ 5 with one known-flaky judge. | Small panels (N=3 → trimmed = median). |
 
 Weighted forms use the **effective weight** `w = w_caller * w_calibrated` (calibration weights
@@ -29,7 +30,7 @@ trimmed_mean    = mean of scores after removing the k highest- and k lowest-weig
 For gates: `decision = PASS` iff weighted PASS votes > weighted FAIL votes. If a `pass_threshold`
 is set and the aggregator is scalar, `PASS = aggregated_score >= pass_threshold`.
 
-## Ranking aggregators (cross_ranking topology)
+## Ranking aggregators (cross-ranking mechanism)
 
 Judges emit rankings, not scalars. Combine with one of:
 
@@ -44,23 +45,39 @@ The winner is `decision`; the full ordering is returned as `ranked[]`. Break tie
 mean per-criterion score, then (2) lower rank variance (more agreement), then (3) coin flip on
 `seed` — and *record* which tiebreaker fired.
 
-## Confidence
+## Confidence — sigma + verdict unanimity (episteme)
 
 `confidence` is **not** the mean of judge self-reported confidences (judges are overconfident).
-Derive it from **agreement**, then fold in calibration:
+Derive it from **dispersion + agreement**. The primary donor episteme uses a three-level scheme off
+the score **sigma** (standard deviation across judges) and **verdict unanimity**:
 
 ```
-agreement (scalars) = 1 - normalized_variance(scores)            # 0 = total disagreement, 1 = identical
+sigma = stddev(judge_scores)
+
+if sigma >= sigma_threshold:      confidence = LOW      # no consensus — a VALUABLE signal, surface it
+elif all judges share the verdict: confidence = HIGH    # tight AND unanimous
+else:                              confidence = MEDIUM   # tight scores but a split verdict
+```
+
+`sigma_threshold` defaults to ~0.15 on a 0-1 scale (scale it to the rubric range; ~0.75 on 1-5).
+**Low confidence is not a failure** — it is the panel honestly reporting that the judges disagree,
+which downstream callers use to escalate to a human, a larger panel, or a debate round. Never
+collapse a Low into a fabricated High.
+
+When a caller needs a *scalar* confidence instead of a level, map dispersion to `[0.5, 0.99]`:
+
+```
+agreement (scalars) = 1 - normalized_sigma(scores)               # 0 = total disagreement, 1 = identical
 agreement (ranks)   = Krippendorff's alpha over the rankings     # or mean pairwise Kendall tau
 confidence = clamp( 0.5 + 0.5 * agreement , 0.5 , 0.99 )         # a split panel is never confident
 ```
 
-Then adjust with the ledger (self-calibration.md): if the panel's *historical* realized accuracy
-at this agreement level is lower than `confidence`, shrink toward the realized rate. **Cap at 0.99**
+Then adjust with the ledger (self-calibration.md): if the panel's *historical* realized accuracy at
+this agreement level is lower than `confidence`, shrink toward the realized rate. **Cap at 0.99**
 (invariant #5) — and never below 0.5 for a decided verdict, because 0.5 means "no information."
 
-Also fold the judges' own confidences in only as a *tie-breaker* between equally-agreeing panels,
-never as the primary signal.
+Fold the judges' own confidences in only as a *tie-breaker* between equally-agreeing panels, never
+as the primary signal.
 
 ## Dissent is a first-class output
 
@@ -73,6 +90,7 @@ human, a larger panel, or a debate round. **Suppressed dissent is how bad panels
 ```
 Categorical verdict (PASS/FAIL, winner)         -> majority (odd N; ties -> abstain)
 Scalar score, judges trustworthy                -> median  (default), or mean if you want smoothness
+Scalar score, judges of unequal reliability     -> weighted (effective w = w_caller * w_calibrated)
 Scalar score, N>=5 with a flaky judge           -> trimmed (k=1)
 Ranking K candidates                            -> Borda (default) / Copeland (head-to-head) / median-rank (robust)
 ```

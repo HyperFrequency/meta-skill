@@ -48,10 +48,12 @@ High agreement → high (but < 0.99) confidence. Median score 4.6 ≥ threshold 
 
 ---
 
-## Example 2 — 4-way fusion tournament (cross_ranking + Borda)
+## Example 2 — 4-way fusion tournament (independent ranking + Borda)
 
 **Goal:** four candidate answers (e.g. four fusion-panel outputs) to the same prompt; pick the best
-without provenance or position bias.
+without provenance or position bias. Because `candidates[]` is present, each judge independently
+ranks them via the **anonymized cross-ranking mechanism** (topologies.md) — `topology: independent`
+means no judge sees another's ranking.
 
 Request (abbrev):
 
@@ -67,7 +69,7 @@ Request (abbrev):
   "judges": [ {"id":"j1","model":"claude-opus-4-8"}, {"id":"j2","model":"gpt-5.2"},
               {"id":"j3","model":"gemini-3.1-pro"}, {"id":"j4","model":"grok-4"},
               {"id":"j5","model":"llama-4-405b"} ],
-  "topology": "cross_ranking", "aggregation": "trimmed"
+  "topology": "independent", "aggregation": "borda"
 }
 ```
 
@@ -87,7 +89,7 @@ Verdict:
   "agreement": 0.68,                          // Krippendorff alpha over the 5 rankings
   "ranked": ["C","A","B","D"],
   "dissent": [ { "judge_id": "j4", "decision": "A", "reason": "ranked A over C on concision" } ],
-  "metadata": { "topology": "cross_ranking", "aggregation": "trimmed(k=1)", "n_judges": 5 }
+  "metadata": { "topology": "independent", "aggregation": "borda", "n_judges": 5, "mechanism": "anonymized_cross_ranking" }
 }
 ```
 
@@ -134,7 +136,87 @@ signal to escalate to a human before merging.
 
 ---
 
-## Feeding the ledger (all three examples)
+## Example 4 — council synthesis (3-stage, anonymized)
+
+**Goal:** three models answer an open question; produce one *synthesized* best answer plus a peer
+ranking, with anonymization killing sycophancy toward the strongest-branded model.
+
+```jsonc
+{
+  "candidates": null,                          // council generates stage-1 answers itself from task_context
+  "task_context": "Explain why deflated Sharpe ratio matters when selecting among many backtests.",
+  "rubric": { "criteria": [ {"name":"correctness","weight":0.6}, {"name":"clarity","weight":0.4} ],
+              "scale": {"min":1,"max":5}, "evidence_required": true },
+  "judges": [ {"id":"m1","model":"claude-opus-4-8"}, {"id":"m2","model":"gpt-5.2"},
+              {"id":"m3","model":"gemini-3.1-pro"} ],
+  "topology": "council", "aggregation": "borda",
+  "council": { "chairman": "gemini-3.1-pro" }
+}
+```
+
+Flow: **Stage 1** — m1/m2/m3 each answer privately. **Stage 2** — each sees all three answers as
+`Response A/B/C` (identities stripped, order shuffled per member) and returns a ranking; nobody
+knows which answer is theirs, so no self-favoring and no deferring to a big-name model. **Stage 3**
+— the chairman reads the answers + rankings and writes the final synthesis.
+
+```jsonc
+{
+  "mode": "tournament", "decision": "m2", "score": null, "confidence": "HIGH",
+  "agreement": 0.79, "ranked": ["m2","m1","m3"],
+  "dissent": [],
+  "metadata": { "topology": "council", "aggregation": "borda", "n_judges": 3,
+                "synthesis": "Deflated Sharpe corrects the selection bias from testing many strategies: the more backtests you try, the higher the best in-sample Sharpe you expect by luck alone; DSR discounts the observed Sharpe by the number of trials and their correlation ..." }
+}
+```
+
+The ranking says m2's answer was judged best; the deliverable callers actually use is
+`metadata.synthesis`. Contrast `consciousness-council`, which would surface the *tension* between
+views for a human rather than emit a single synthesized answer + rank.
+
+---
+
+## Example 5 — hierarchical escalation (cheap-first, episteme)
+
+**Goal:** screen 10,000 generated replies cheaply; only spend the full panel on the ambiguous ones.
+
+```jsonc
+{
+  "candidate": { "id": "reply-7731", "content": "..." },
+  "task_context": "Is this reply a correct, safe answer to the user's billing question?",
+  "rubric": { "criteria": [ {"name":"correct_safe","weight":1.0} ],
+              "scale": {"min":0,"max":1}, "evidence_required": true },
+  "judges": [ {"id":"cheap","model":"gemini-3.1-flash","weight":1.0},
+              {"id":"j2","model":"claude-opus-4-8"}, {"id":"j3","model":"gpt-5.2"} ],
+  "topology": "hierarchical", "aggregation": "median",
+  "hierarchical": { "uncertain_range": [0.4, 0.7] }
+}
+```
+
+Two outcomes on this stream:
+
+- **reply-7731** → cheap judge scores **0.12** (clearly wrong: cites the wrong plan tier). `0.12 <
+  0.4` → outside the uncertain band → return `FAIL`, `confidence: HIGH`, `escalated: false`, **1
+  call**.
+- **reply-8002** → cheap judge scores **0.55** (borderline). `0.4 ≤ 0.55 ≤ 0.7` → **escalate**: run
+  opus + gpt, aggregate all three by median. Opus 0.8 / gpt 0.75 / cheap 0.55 → median **0.75** →
+  `PASS`, `escalated: true`, **3 calls**.
+
+```jsonc
+{
+  "mode": "gate", "decision": "PASS", "score": 0.75, "confidence": "MEDIUM",
+  "score_sigma": 0.11, "agreement": 0.83,
+  "metadata": { "topology": "hierarchical", "aggregation": "median", "escalated": true, "n_judges": 3 }
+}
+```
+
+Across 10k items where ~85% land outside the band, the panel cost is ≈ `0.85·1 + 0.15·3 = 1.3`
+calls/item instead of 3 — a >2x saving with the full panel reserved for the hard tail. Guard: the
+cheap judge's ledger bias offset is subtracted before the range check so a lenient cheap judge
+cannot wave borderline-bad replies through.
+
+---
+
+## Feeding the ledger (all examples)
 
 After each verdict, append one row per judge with its `predicted_score`/`predicted_decision`. When
 the realized outcome later arrives — a human confirms the winner, the strategy's out-of-sample PnL

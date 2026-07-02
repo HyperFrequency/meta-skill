@@ -11,7 +11,8 @@ while hiding correlated error. Handle every case below explicitly.
 | **Empty rubric / no criteria** | Judges invent their own bar; scores incomparable. | Reject: at least one criterion with a description is required. |
 | **Single judge (N=1)** | It is not a panel; agreement and calibration are meaningless. | Refuse or warn loudly; route to `ce-advanced-evaluation` for single-judge scoring. |
 | **Even N + majority** | PASS/FAIL can deadlock. | Warn; on a tie return `ABSTAIN` and escalate. Prefer odd N. |
-| **K=1 in cross_ranking** | Nothing to rank. | Fall back to single-candidate scoring. |
+| **K=1 to rank** | Nothing to rank. | Fall back to single-candidate scoring (the cross-ranking mechanism is a no-op). |
+| **Council with N=1 member** | No peers to cross-review; stage 2 collapses. | Refuse council below 2 members; a 1-member "council" is just single-judge scoring. |
 
 ## Judge-behavior failures
 
@@ -27,11 +28,21 @@ while hiding correlated error. Handle every case below explicitly.
   favors it. Flag any judge whose `model` family matches the candidate's `meta.producer`;
   down-weight it for that candidate, or exclude it. (Mechanism owned by `ce-advanced-evaluation`.)
 - **Position / length / verbosity bias.** Longer or first-placed candidates score higher.
-  Mitigated structurally by `cross_ranking` (anonymize + per-judge shuffle) and by length-neutral
+  Mitigated structurally by the anonymized cross-ranking mechanism (anonymize + per-judge shuffle) and by length-neutral
   prompt instructions; validate with length-controlled pairs.
 - **Sycophancy / herding in debate.** Judges cave to the majority in Round 2 without new evidence.
   Guardrail: show rationales not scores, forbid social-proof revisions, keep Round-1 votes, and
   track a herding penalty in the ledger.
+- **Debate that never converges.** Judges oscillate across rounds instead of settling. Cap at
+  `debate.rounds`, stop early when the max per-judge delta < `epsilon`, and aggregate the final
+  round regardless; record `rounds` actually run.
+- **Council de-anonymization leak.** A stage-1 answer contains a tell ("as Gemini, I..."), a
+  signature style, or a self-reference that reveals its author in stage 2 — anonymization fails and
+  sycophancy returns. Strip self-identifying preambles before relabeling; spot-check that neutral
+  labels can't be trivially mapped back.
+- **ChatEval order/role bias.** In one-by-one mode the first speaker anchors the rest; a single
+  dominant role drowns the others. Rotate speaking order per candidate, keep roles balanced, and
+  prefer `simultaneous` when order sensitivity matters.
 - **Overconfidence.** Judges self-report 0.95 while disagreeing with each other. Never trust
   self-reported confidence as the panel's confidence — derive it from agreement (aggregation.md).
 
@@ -46,9 +57,13 @@ while hiding correlated error. Handle every case below explicitly.
 - **Non-deterministic providers.** Even at temperature 0 some providers vary run to run. Record
   `seed` + model ids in `metadata`; for reproducibility-critical gates, run each judge twice and
   require self-consistency before trusting the vote.
-- **Cost blowup.** `debate` is 2N and large K in `cross_ranking` is N× a long prompt. Budget: use
-  `independent` by default, reserve `debate` for high-stakes calls, cap K, and consider a cheap
-  screening panel before an expensive one (hierarchical evaluation).
+- **Cost blowup.** `debate` is `(R+1)·N`, `chateval` is `R·N`, and large K ranking is N× a long
+  prompt. Budget: use `independent` by default, reserve `debate`/`chateval` for high-stakes or
+  nuanced calls, cap K and R, and put a cheap screening panel first (`hierarchical`).
+- **Hierarchical mis-escalation.** A *systematically* miscalibrated cheap judge lands confident
+  scores outside `uncertain_range` on items that actually need the panel → the panel silently
+  rubber-stamps its error. Subtract the cheap judge's ledger bias offset before the range check, and
+  calibrate `uncertain_range` to bracket the band where its realized accuracy drops.
 
 ## Calibration edge cases
 

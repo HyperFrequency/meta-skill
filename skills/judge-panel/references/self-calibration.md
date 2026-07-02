@@ -8,7 +8,10 @@ rather than a one-shot vote.
 
 ## The ledger
 
-An append-only JSONL file (one row per judge, per candidate, per call):
+The ledger records **predicted-vs-realized metric deltas** per judge — the same tracking
+`tournament-autoresearch` uses to keep its proposers honest (a proposer/judge that *predicts* a
+gain the *realized* metric never delivers is down-weighted). An append-only JSONL file (one row per
+judge, per candidate, per call):
 
 ```jsonc
 {
@@ -82,6 +85,40 @@ applied* — useful while a judge is still accumulating history.
   `model` id; reset (or heavily discount) `bᵢ, vᵢ` when the id changes.
 - **Never let calibration hide dissent.** Down-weighting is for *aggregation*; the raw vote and the
   offset applied are always in the audit trail.
+
+## Align-Evals: closing the human-agreement loop
+
+Re-weighting (`bᵢ, wᵢ`) corrects a judge's *numbers*. **Align-Evals** corrects its *judgment* by
+folding human corrections back into the prompt and then **measuring whether the judge now agrees
+with humans**. The loop:
+
+1. **Collect corrections.** When a human overrides a verdict (or a reconciled `realized_source =
+   "human"` row disagrees with the judge), capture the candidate, the judge's wrong call, and the
+   human's correct call with its rationale.
+2. **Promote to few-shot exemplars.** Splice the highest-signal corrections into the judge's system
+   prompt as **in-context exemplars** ("here is a case like this and the correct scoring"). Keep the
+   exemplar set small and de-duplicated; rotate stale ones out.
+3. **Track judge/human agreement as its own metric.** Compute the judge's agreement with the human
+   labels (Cohen's κ for categorical, correlation / MAE for scalar) on a **held-out** slice of
+   labeled cases. This agreement is a *first-class, regression-gated* metric of the panel.
+4. **Regression-gate prompt changes.** Any edit to a judge prompt (new exemplars, a `gepa`-evolved
+   variant, a hand tweak) must be **rejected if it lowers held-out judge/human agreement** below the
+   prior best minus a tolerance. This stops "improvements" that overfit the correction set and drift
+   the judge away from human intent.
+
+```
+align_evals(judge, correction_pool, held_out):
+    candidate_prompt = judge.prompt + few_shot(select_top(correction_pool))
+    kappa_new = agreement(run(candidate_prompt, held_out), human_labels(held_out))
+    if kappa_new >= judge.best_kappa - tolerance:
+        judge.prompt = candidate_prompt;  judge.best_kappa = max(kappa_new, judge.best_kappa)
+    else:
+        reject(candidate_prompt)   # regression — keep the old prompt, log the drop
+```
+
+Enable via `calibration.align_evals: { correction_pool, held_out, tolerance }` in the request. The
+ledger supplies the corrections and the realized labels; Align-Evals turns them into prompt
+exemplars *and* the agreement gate that keeps prompt evolution honest.
 
 ## Optional: evolving judge prompts with `gepa` (MIT)
 

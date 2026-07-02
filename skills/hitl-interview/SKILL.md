@@ -1,79 +1,76 @@
 ---
 name: hitl-interview
-version: 0.1.0
-description: "Human-in-the-loop interview / elicitation for autonomous harnesses. Use when a long-running agent run must PAUSE and ask the human only for inputs it genuinely cannot get otherwise — blocking requirements, preferences, approvals/sign-off, disambiguation, or acceptance criteria — then resume with the answers threaded in as durable context. Focused protocol: batch open questions into one round, offer a safe default per question, never re-ask what was answered or is inferable, record answers to a durable ledger. Trigger on \"interview me\", \"ask me what you need\", \"elicit requirements\", \"pause and get my input\", \"HITL checkpoint\", or when an orchestrator (relentless-inception, autonomous-orchestrator) hits a gate needing human judgment. Do NOT use to re-ground a stalled/hallucinating node (use background-rescue), to interrogate a codebase (gitnexus), for research answerable from sources (deep-research), or for back-and-forth on a task you can just do — fires only when a missing human input is genuinely blocking."
+version: 0.2.0
+description: "Human-review stage of trajectory-miner (Loop 3): the anti-pattern review surface. Its scan workflow parks on an ApprovalRequest{kind:\"antipattern-review\"} gate (shared hitl.proto envelope) carrying trajectory-miner's AntiPattern/Issue clusters; this skill adjudicates them. Use it when a scan has emitted anti-patterns needing human review, when a finding's confidence is below threshold and needs a CONFIRM/REJECT/LABEL/BOUNDARY verdict, or when mined findings must become an Align-Evals few-shot store plus _llm_scores annotations. Per finding it presents EVIDENCE (traces, excerpts, diffs) and asks 3-7 questions ONLY when confidence < threshold, recording each verdict as a confidence-shifting evidence event. Auto-apply exists ONLY under hyper-sleep bounds (confidence cap, timeout, no deletions); else MANUAL. Do NOT use to MINE transcripts (trajectory-miner), rescue one live stuck node (background-rescue), run the fix loop (recursive-self-improvement / neuro-surgery), or as a generic blocking-input interviewer."
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion, Skill, Agent
 license: HyperFrequency original
 metadata:
     skill-author: HyperFrequency
-    upstream: none — original HITL elicitation layer
-    note: "Authored from the neuro-centrifuge harness gap-list summary; the vault HITL spec was not accessible at authoring time. Interview-ledger paths and gate names below are DEFAULTS — reconcile with the harness config if it defines its own."
+    upstream: none — original review surface for the neuro-centrifuge trajectory-miner loop
 ---
 
-# HITL Interview
+# HITL Interview — trajectory-miner review surface
 
-An autonomous harness is only as good as its willingness to stop at the right moments. Stop too rarely and it confidently builds the wrong thing on a silent wrong assumption. Stop too often and it becomes a chat toy that can never run unsupervised. This skill is the discipline in between: it converts "I'm not sure what the human wants here" into **the minimum set of questions that are genuinely blocking**, asks them in one batched round with safe defaults, records the answers durably, and hands control back so the run continues.
+`trajectory-miner` (Loop 3) mines a corpus of agent transcripts and emits **candidate anti-patterns** — clustered failure modes, each with evidence and a machine-assigned confidence. Most are unattended-safe to file. Some sit in the murky middle: the miner is not sure the cluster is real, or not sure how to label it, or not sure how wide its blast radius is. **This skill is the human-review stage for exactly those uncertain findings.**
 
-You are the elicitation pass, not the executor. You do **not** solve the task. You produce (a) a validated set of human answers and (b) a durable record of them, so the calling agent resumes with real inputs instead of guesses.
+You are the adjudication surface, not the miner and not the fixer. The scan workflow **parks** on an `ApprovalRequest{kind:"antipattern-review", payload:<issue batch>}` — the shared `hitl.proto` gate envelope — and hands you the batch. For each finding you present its clustered evidence, ask a small number of targeted questions **only when confidence is below the review threshold**, and record every decision as a durable **evidence event** that raises or lowers the finding's confidence and feeds an Align-Evals few-shot store. Every decision is logged to `_llm_scores` with `source_type: "annotation"` so the review itself is regression-gateable. Then you hand control back — you do not apply the fix.
 
-## When to use this skill
+## When to use
 
-Fire when an autonomous or long-running run reaches a point where progress requires a **human input it cannot obtain any other way**, in one of six categories:
+- A `trajectory-miner` scan has produced `trajectory-report.json` and parked on an `antipattern-review` gate with an issue batch awaiting human adjudication.
+- One or more findings have `confidence < review_threshold` and need a human CONFIRM / REJECT / LABEL / BOUNDARY call before they can drive any downstream fix.
+- You want mined findings converted into supervised signal: an Align-Evals few-shot store plus `_llm_scores` annotation rows.
+- A `hyper-sleep` pass reached the review gate and wants to know which findings (if any) fall inside its auto-apply bounds vs. which must wait for a human.
 
-1. **Blocking requirement** — a fact only the human has (target market, budget cap, which of two data sources is canonical, the deploy target).
-2. **Preference** — multiple correct answers; the human's taste decides (naming, stack choice, tone, aggressiveness of a risk parameter).
-3. **Approval / sign-off** — an irreversible or costly action needs a human yes (deploy, spend, delete, send, publish, allocate capital).
-4. **Disambiguation** — the instruction genuinely supports >1 reading and they diverge materially.
-5. **Acceptance criteria** — "done" is undefined and the human owns the definition.
-6. **Missing precondition** — a credential name, an access grant, a file the human must provide.
+## When NOT to use
 
-Also fire when an orchestrator explicitly delegates a gate to you (see [`references/integration.md`](references/integration.md)).
+- **Mining** transcripts for anti-patterns in the first place — that is `trajectory-miner`. This skill starts *after* the report exists.
+- **Rescuing one live stuck node** — a single diverged/looping/rotted run is `background-rescue`, not a corpus review.
+- **Running the fix loop** that consumes approved findings — proposal grading is `recursive-self-improvement`; per-item KB/skill repair is `neuro-surgery`. This skill grades the *finding*, not the *fix*.
+- **Generic requirement/preference elicitation** — this is not a blocking-input interviewer. It reviews mined anti-patterns against evidence. If there is no `trajectory-miner` batch, this skill is the wrong tool.
 
-## When NOT to use it
+Trigger test: *is there a batch of miner-produced anti-pattern findings that need a human verdict?* If yes, use this. If no, stop.
 
-- The input is **inferable** from context, files, defaults, or prior answers — infer it and note the assumption; do not ask.
-- The question is answerable from **sources / the web / a codebase** — use `deep-research`, `perplexity-search`, or `gitnexus` instead.
-- A node has **stalled, rotted, or is hallucinating** — that is re-grounding, use `background-rescue`, not an interview.
-- You are tempted to ask just to **confirm work you can verify yourself** — verify it (`verify`), don't ask.
-- The task is small enough to **just do** — a single tool call beats a question.
+## The review loop
 
-The test: *if the human could reasonably answer "why are you asking me this, just decide" — you should not be asking.*
+Work the parked batch one finding at a time. Depth for each step is in the references.
 
-## The protocol (five steps)
-
-Run these in order. Depth for each is in the references.
-
-1. **Draft the candidate question list.** Every open decision the run faces right now. Do not filter yet.
-2. **Filter to blocking-only.** Apply the [`references/blocking-criteria.md`](references/blocking-criteria.md) rubric to each candidate: is it blocking, inferable, or deferrable? Drop inferable (record the inferred value as an assumption) and deferrable (queue for a later gate). Keep only what blocks *now*.
-3. **Check the ledger — never re-ask.** Load the interview ledger (default `state/interview-ledger.md`). Drop any question already answered, or answerable by combining prior answers. Re-asking is the cardinal sin of this skill.
-4. **Batch and ask.** Pose all surviving questions in a **single** `AskUserQuestion` call (multiple questions per call), each with 2–4 concrete options **and a marked safe default**. Structured, not an essay. Schema, batching limits, and good/bad examples are in [`references/question-protocol.md`](references/question-protocol.md).
-5. **Record and resume.** Write each answer (and each inferred assumption from step 2) to the ledger as durable context, then hand a clean resume summary back to the calling agent. Format and threading rules: [`references/answer-record.md`](references/answer-record.md).
+1. **Accept the gate envelope.** Read the `ApprovalRequest{kind:"antipattern-review"}` and its payload (the issue batch = a slice of `trajectory-miner`'s clusters). Validate the envelope shape and resolve every referenced trace/transcript before touching a single question. Contract: [`references/gate-envelope.md`](references/gate-envelope.md).
+2. **Triage by confidence.** For each finding compare its confidence to `review_threshold`. **At or above threshold** ⇒ no question needed; record an auto-confirm evidence event and move on. **Below threshold** ⇒ it needs human input — proceed to step 3. Never ask about a finding the miner is already confident in; that trains the human to distrust the gate.
+3. **Present clustered evidence.** For each below-threshold finding, assemble its evidence bundle: trace links, minimal transcript excerpts (goal + diverging turns), and before/after diffs where the miner proposed a fix. Scrub secrets first. Assembly rules: [`references/review-protocol.md`](references/review-protocol.md).
+4. **Ask 3-7 targeted questions.** Pose CONFIRM / REJECT / LABEL / BOUNDARY questions — the four verdict types — in one batched `AskUserQuestion` round per finding (or per tight finding-group). Each carries the evidence-backed default. Question taxonomy, batching, and worked examples: [`references/review-protocol.md`](references/review-protocol.md).
+5. **Record each decision as an evidence event.** Every verdict becomes an append-only evidence event that raises or lowers the finding's confidence, is written into the Align-Evals few-shot store, and is logged to `_llm_scores` with `source_type: "annotation"`. Schemas and the confidence-update rule: [`references/evidence-events.md`](references/evidence-events.md).
+6. **Risk-tier the outcome and hand back.** Decide which confirmed findings may be auto-applied (only inside `hyper-sleep` bounds) and which default to MANUAL. Emit a resume summary and return control to the scan workflow — do not execute the fix. Tiering rules: [`references/risk-tiering.md`](references/risk-tiering.md).
 
 ## Core principles
 
-- **Ask only what is truly blocking.** Every question must trace to a decision that cannot proceed without it. If you can name a defensible default and the cost of being wrong is low/recoverable, use the default and note it — don't ask.
-- **Batch.** One round of N questions, not N rounds of one. Round-trips are the expensive resource, not tokens. Never trickle questions.
-- **Always offer a safe default.** Each question ships with a recommended option the human can accept with one click. A good interview is answerable by pressing "default" five times.
-- **Never re-ask.** Answered, inferable, or derivable-from-prior-answers ⇒ do not ask. The ledger is authoritative.
-- **Record durably.** Answers outlive the session. Write them where the next agent (and the next run) will find them, with timestamp and provenance.
-- **Stay lateral.** You elicit and record; you do not execute the underlying task. Return control immediately once answers are captured.
+- **Evidence before verdict.** No question is posed without the finding's trace links and excerpts resolved and shown. A verdict on unseen evidence is worthless as an annotation.
+- **Ask only under the threshold.** Confidence gates every question. If the miner is already confident, the human is not consulted — the gate exists for the uncertain middle, not for rubber-stamping.
+- **Every decision is signal.** Each verdict is an evidence event *and* an Align-Evals few-shot *and* an `_llm_scores` annotation. The review is itself a graded, regression-gateable artifact — a reviewer who drifts is caught by replaying old annotations.
+- **Manual by default; auto-apply is the exception.** Only findings that clear `hyper-sleep`'s bounds (confidence cap, timeout, no deletions) may auto-apply. Everything else waits for a human. Mirror `neuro-surgery`: per-item, never batch-silent.
+- **Grade the finding, not the fix.** You decide *is this a real anti-pattern, and what is it*. Whether/how to repair it belongs to `recursive-self-improvement` and `neuro-surgery` downstream.
+- **Stay lateral.** You adjudicate and record, then return control. You never edit the agent, its prompts, its skills, or the transcripts.
 
 ## Failure modes to guard against
 
-- **No response / timeout** — the human walks away mid-run. Fall back to the marked safe defaults, record them as `answer: <default> (source: default-on-timeout)`, and continue only if every unanswered question had a safe default. If any un-defaulted question is still open, checkpoint the run and stop cleanly — do not guess a high-stakes answer. See [`references/answer-record.md`](references/answer-record.md).
-- **Question flood** — you drafted 15 questions. Almost all are inferable or deferrable. Re-run step 2 harder; a well-run gate is usually 1–4 questions.
-- **Approval smuggled as preference** — never present an irreversible action as a low-stakes multiple choice with the dangerous option as default. Approvals default to the *safe/no-op* option and say what is irreversible.
-- **Ledger drift** — two runs, two ledgers, contradictory answers. Keep one ledger per project/goal; on conflict, most-recent-wins and flag the contradiction to the human as its own question.
-- **Leading the witness** — options that are all one answer dressed up. Offer genuinely distinct choices plus a free-form escape hatch (`AskUserQuestion` allows the human to type their own).
+- **Batch-silent approval.** Approving a whole batch with one click is the cardinal sin — it is exactly what `neuro-surgery`'s per-item rule forbids. One verdict per finding, always. See [`references/risk-tiering.md`](references/risk-tiering.md).
+- **Over-asking.** Questioning findings already above threshold floods the human and poisons the annotation store with trivial CONFIRMs. Re-check the triage in step 2.
+- **Evidence-free verdict.** A CONFIRM with no resolvable trace is not a usable annotation — reject the finding back to the miner as `insufficient-evidence` rather than guess.
+- **Auto-apply creep.** A finding that proposes a deletion, or exceeds the confidence cap, or arrives after the timeout window, is **never** auto-apply — it defaults MANUAL no matter how clean it looks. See the bounds in [`references/risk-tiering.md`](references/risk-tiering.md).
+- **Annotation drift.** If the reviewer's verdicts stop matching replayed gold annotations in `_llm_scores`, the gate is regressing — surface it, do not keep annotating. See [`references/evidence-events.md`](references/evidence-events.md).
+- **No-response / timeout.** The human never answers. Findings with a safe evidence-backed default are recorded `source: default-on-timeout`; below-threshold findings with no safe default are parked `verdict: UNRESOLVED` and the gate stays open. Never let a timeout auto-confirm an anti-pattern that would drive a deletion.
 
 ## References
 
-- **[`references/question-protocol.md`](references/question-protocol.md)** — `AskUserQuestion` schema and limits, batching rules, how to build safe defaults, worked good/bad question examples.
-- **[`references/blocking-criteria.md`](references/blocking-criteria.md)** — the blocking-vs-inferable-vs-deferrable decision rubric, the six ask-categories, the no-re-ask check.
-- **[`references/answer-record.md`](references/answer-record.md)** — the interview-ledger schema, threading answers back into a paused run, the resume summary, timeout/no-response handling.
-- **[`references/integration.md`](references/integration.md)** — how `relentless-inception`, `autonomous-orchestrator`, `e2e-agentic-ML`, and background watchdogs invoke this skill at their gates, and how it differs from `background-rescue`.
+- **[`references/gate-envelope.md`](references/gate-envelope.md)** — the shared `hitl.proto` `ApprovalRequest{kind:"antipattern-review"}` envelope, the issue-batch payload shape (how it maps to `trajectory-miner`'s clusters), and the park/resume handshake.
+- **[`references/review-protocol.md`](references/review-protocol.md)** — assembling the evidence bundle (trace links, transcript excerpts, before/after diffs), the CONFIRM/REJECT/LABEL/BOUNDARY question taxonomy, confidence-threshold gating, batching, worked good/bad examples.
+- **[`references/evidence-events.md`](references/evidence-events.md)** — the evidence-event schema, the confidence-raise/lower rule, the Align-Evals few-shot store, and `_llm_scores` annotation logging (`source_type: "annotation"`) for regression-gating the review.
+- **[`references/risk-tiering.md`](references/risk-tiering.md)** — the MANUAL-by-default rule, the `hyper-sleep`-bounded auto-apply lane, and the three enforcement patterns (neuro-surgery per-item, recursive-self-improvement consortium pre-vote, meta_skill UncertaintyQueue).
 
 ## Cross-links
 
-- `relentless-inception`, `autonomous-orchestrator`, `e2e-agentic-ML` — orchestrators that call this skill at a human-judgment gate.
-- `background-rescue` — sibling lateral pass; use it when a node has **diverged**, use this when a run needs a **missing human input**. They do not overlap.
+- `trajectory-miner` — **produces** the findings this skill reviews; the scan workflow parks on the `antipattern-review` gate. Tightly coupled: this skill's input schema is that skill's output.
+- `neuro-surgery` — the per-item, never-batch-silent approval discipline this skill mirrors; also a downstream consumer that repairs confirmed findings.
+- `recursive-self-improvement` — the consortium-graded fix loop that consumes confirmed anti-patterns as improvement targets; can pre-vote proposals before a human sees them.
+- `hyper-sleep` — the only context in which auto-apply is permitted, and only inside its hard bounds (confidence cap, no deletions, timeout).
+- `background-rescue` — sibling that rescues ONE live diverged node; this skill reviews mined failures in BATCH, after the fact. They do not overlap.
