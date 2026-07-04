@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://temporal.io/skills/temporal-design/output-schema.json",
+  "title": "Temporal Workflow Design Critique",
+  "description": "Machine-readable verdict for the temporal-design (temporal-workflow-design-critic) skill. Mirrors the optional structured output in decision-guide.md and the Markdown output contract in SKILL.md. List issues in descending severity order (critical first).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "summary", "issues", "checklist"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["approve", "approve_with_changes", "needs_revision", "high_risk"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "1-3 sentence summary of the verdict."
+    },
+    "issues": {
+      "type": "array",
+      "description": "Severity-ranked findings, ordered critical -> info.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "category", "title", "why_it_matters", "recommendation"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Review category, e.g. Workflows, Activities, Signals, Saga / Compensation, Nexus / Cross-service."
+          },
+          "title": { "type": "string", "minLength": 1 },
+          "why_it_matters": { "type": "string", "minLength": 1 },
+          "recommendation": { "type": "string", "minLength": 1 },
+          "evidence": {
+            "type": "string",
+            "description": "Optional pointer to the evidence in the reviewed design."
+          }
+        }
+      }
+    },
+    "checklist": {
+      "type": "object",
+      "description": "Map of checklist item key to result. Keys correspond to references/checklist.md items.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["pass", "fail", "inconclusive", "not_applicable"]
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -17,6 +17,7 @@ DSPy optimizers (called "teleprompters") automatically improve your modules by:
 |-----------|----------|-------|---------|-------------|
 | BootstrapFewShot | General purpose | Fast | Good | 10-50 examples |
 | MIPRO | Instruction tuning | Medium | Excellent | 50-200 examples |
+| GEPA | Reflective instruction evolution (needs a feedback metric) | Medium | Excellent, sample-efficient | 30-300 examples + textual feedback |
 | BootstrapFinetune | Fine-tuning | Slow | Excellent | 100+ examples |
 | COPRO | Prompt optimization | Medium | Good | 20-100 examples |
 | KNNFewShot | Quick baseline | Very fast | Fair | 10+ examples |
@@ -145,6 +146,38 @@ optimized_qa = optimizer.compile(
 - Want state-of-the-art performance
 - Willing to wait for optimization
 - Complex reasoning tasks
+
+### GEPA (Reflective Prompt Evolution)
+
+**Evolves predictor *instructions* by reflecting on failures** instead of blind
+search. An LM reads the failing traces, rewrites the instruction to fix them, and
+surviving candidates are kept on a per-validation-instance Pareto front. Paper:
+"GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning" (arXiv
+2507.19457) — competitive with RL/GRPO at a fraction of the rollouts.
+
+Unlike the optimizers above, GEPA needs a **feedback metric** that returns a
+`dspy.Prediction(score=..., feedback=...)` (not a bare float), and a strong
+`reflection_lm`. With only a binary metric it loses its edge — use MIPRO instead.
+
+```python
+from dspy import GEPA
+
+optimizer = GEPA(
+    metric=metric_with_feedback,        # returns dspy.Prediction(score, feedback)
+    auto="light",                       # or max_full_evals=N
+    reflection_lm=dspy.LM("anthropic/claude-opus-4-8", temperature=1.0, max_tokens=32000),
+    num_threads=16,
+    track_stats=True,
+)
+optimized = optimizer.compile(program, trainset=trainset, valset=valset)
+```
+
+**When to use:** you can author actionable textual feedback, the program has one or
+more predictors whose *instructions* need improving, and rollout budget is tight.
+
+> Full parameter reference, the metric contract (`gold, pred, trace, pred_name,
+> pred_trace`), the loop, results inspection, and the **`dspy.GEPA` vs. standalone
+> `gepa-evolve`** distinction live in `gepa.md`.
 
 ### BootstrapFinetune
 

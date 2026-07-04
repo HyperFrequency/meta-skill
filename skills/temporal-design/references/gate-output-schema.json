@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://temporal.io/skills/temporal-design/gate-output-schema.json",
+  "title": "Temporal Design Automated Gate Result",
+  "description": "Machine-readable result of the automated (non-interactive) design gate path of the temporal-design skill. See references/automated-gate.md. A score is only comparable to another score produced under the same schema_version and corpus_version. List assertions and hard_fail results most-severe first.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject", "schema_version", "corpus_version", "gate", "weighted_score", "threshold", "assertions", "hard_fail"],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What was scored: design id, workflow name, or commit sha."
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable criteria-schema version the score is under."
+    },
+    "corpus_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pinned replay-history corpus version used by the replay runner."
+    },
+    "level": {
+      "type": "string",
+      "enum": ["design", "workflow"],
+      "description": "design = whole design; workflow = a single authored workflow."
+    },
+    "gate": {
+      "type": "string",
+      "enum": ["pass", "fail", "inconclusive"],
+      "description": "inconclusive = a required input was missing; the gate fails closed."
+    },
+    "weighted_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Weighted combination of deterministic (pass=1) and model-graded (score/5) assertions."
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Minimum weighted_score to pass, from the criteria schema."
+    },
+    "hard_fail": {
+      "type": "array",
+      "description": "Result of each hard-fail invariant. Any failed invariant forces gate: fail.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "passed"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": ["replay_clean", "payload_under_hard_limit", "versioning_marker_present", "capability_bound"]
+          },
+          "passed": { "type": "boolean" },
+          "evidence": { "type": "string", "description": "Optional pointer to the failing history, payload, branch, or primitive." }
+        }
+      }
+    },
+    "assertions": {
+      "type": "array",
+      "description": "Each deterministic and model-graded assertion result, most-severe (failing, highest weight) first.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "weight", "passed"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["deterministic", "model_graded"] },
+          "weight": { "type": "number", "minimum": 0 },
+          "passed": { "type": "boolean", "description": "For model_graded, true when median score meets the assertion's pass bar." },
+          "score": { "type": "number", "minimum": 0, "maximum": 5, "description": "Model-graded only: median score across trials." },
+          "trials": { "type": "integer", "minimum": 1, "description": "Model-graded only: number of judge trials." },
+          "variance": { "type": "number", "minimum": 0, "description": "Model-graded only: score variance across trials." },
+          "evidence": { "type": "string", "description": "Evidence-before-score text (model-graded) or a file/line pointer (deterministic)." },
+          "reasoning": { "type": "string", "description": "Model-graded only: judge reasoning." },
+          "source": { "type": "string", "description": "Rubric/checklist section this assertion compiles from." }
+        }
+      }
+    },
+    "baseline_ref": {
+      "type": "string",
+      "description": "Design/commit the candidate was compared against."
+    },
+    "delta_vs_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "score_delta": { "type": "number", "description": "candidate weighted_score minus baseline weighted_score." },
+        "noise_band": { "type": "number", "minimum": 0, "description": "A drop within this band is not treated as a regression." },
+        "is_regression": { "type": "boolean" }
+      }
+    },
+    "inconclusive_reason": {
+      "type": "string",
+      "description": "Set when gate is inconclusive: which required input was missing."
+    }
+  }
+}

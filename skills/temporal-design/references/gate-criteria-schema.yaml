@@ -1,0 +1,123 @@
+# Example versioned criteria schema for the automated design gate.
+#
+# This is the interactive rubric (references/rubric.md + references/checklist.md)
+# compiled into a machine-checkable form: a weighted list of deterministic and
+# model-graded assertions, a set of hard-fail invariants, and a gate threshold.
+#
+# The schema is IMMUTABLE per version. Changing any assertion, weight, threshold,
+# or invariant mints a new schema_version; a score is only comparable to another
+# score produced under the same schema_version and corpus_version.
+#
+# See references/automated-gate.md for how the runners consume this, and
+# references/gate-output-schema.json for the shape of the result it produces.
+
+schema_version: "1.0.0"
+
+# The replay-history corpus this schema is calibrated against. The gate pins a
+# corpus_version at run time; this is the default/baseline corpus.
+corpus_version: "2026-07-baseline"
+
+# Which SDK primitives an authored workflow may use, keyed to the SDK + pin.
+# Using anything outside this list is a hard fail (see invariants.capability_bound).
+capability_inventory:
+  sdk: "unset"          # e.g. go-1.29, typescript-1.11, python-1.7, java-1.27
+  sdk_pin: "unset"
+  allowed: []           # populated per SDK from the p-level capability inventory;
+                        # empty means "resolve for the target SDK before gating"
+
+# Hard-fail invariants. Any single failure fails the gate regardless of the
+# weighted score. These correspond to the `critical` band of the interactive rubric.
+invariants:
+  - id: replay_clean
+    description: No nondeterminism error on any history in the replay corpus.
+  - id: payload_under_hard_limit
+    description: No encoded payload exceeds the single-payload hard limit; no
+                 workflow-task transaction exceeds the gRPC/transaction hard limit.
+  - id: versioning_marker_present
+    description: Every workflow-logic change reachable by an in-flight execution
+                 is guarded by a replay-safe marker (patch()/GetVersion or a
+                 Worker-Deployment version pin).
+  - id: capability_bound
+    description: The authored workflow uses only primitives in capability_inventory.
+
+# Weighted assertions. weighted_score = sum(weight * pass ? 1 : partial) / sum(weight),
+# where model-graded assertions contribute score/5. Must be >= threshold to pass.
+threshold: 0.80
+
+assertions:
+
+  # --- Deterministic assertions (no model; mechanical pass/fail) ---
+  - id: no_wallclock_in_workflow
+    kind: deterministic
+    weight: 3
+    source: "rubric.md#2-workflow-review (Determinism)"
+    check: "Workflow code reads time only via the workflow clock; no system clock,
+            random, UUID, env, or I/O in workflow code."
+
+  - id: activity_idempotency_keys
+    kind: deterministic
+    weight: 3
+    source: "rubric.md#4-activity-review (Idempotency)"
+    check: "Every externally-mutating activity declares an idempotency key."
+
+  - id: history_growth_managed
+    kind: deterministic
+    weight: 2
+    source: "rubric.md#2 (Event history awareness)"
+    check: "Unbounded/high-volume workflows trigger Continue-As-New before the
+            10,240-event / 10 MB warning; pending-op counts stay under 2,000."
+
+  - id: payload_by_reference
+    kind: deterministic
+    weight: 2
+    source: "rubric.md#4 (Payload size)"
+    check: "Large data is passed by reference/blob handle, not inline blobs."
+
+  - id: patch_has_retirement_plan
+    kind: deterministic
+    weight: 1
+    source: "rubric.md#13 (Versioning and replay-safety)"
+    check: "patch()/GetVersion markers have a documented retirement plan."
+
+  - id: retry_policy_intentional
+    kind: deterministic
+    weight: 1
+    source: "rubric.md#4 (Retry policy)"
+    check: "Retry policy deviates from defaults intentionally; nonRetryableErrorTypes
+            set for never-succeeding errors; no unlimited retries on non-idempotent
+            external calls."
+
+  # --- Model-graded assertions (rubric judge; returns evidence + score 0-5) ---
+  - id: temporal_fit
+    kind: model_graded
+    weight: 3
+    trials: 3
+    source: "rubric.md#1-temporal-fit"
+    prompt: "Rate 0-5 whether this use case is an appropriate fit for durable
+             orchestration (not a data plane, not a micro-latency path). Give
+             evidence before the score."
+
+  - id: saga_compensation_completeness
+    kind: model_graded
+    weight: 2
+    trials: 3
+    source: "rubric.md#17-saga--compensation-review"
+    prompt: "Rate 0-5 the completeness of the compensation strategy for multi-step
+             external mutations (reverse-order, idempotent, error-driven). Give
+             evidence before the score."
+
+  - id: activity_granularity
+    kind: model_graded
+    weight: 1
+    trials: 3
+    source: "rubric.md#4 (Granularity)"
+    check: null
+    prompt: "Rate 0-5 whether activity granularity balances observability against
+             history growth and retry coarseness. Give evidence before the score."
+
+# Regression-gate settings applied on top of threshold + invariants.
+regression:
+  compare_to_baseline: true          # candidate vs pinned baseline_ref
+  noise_band: 0.03                    # median-over-trials drop within this = not a regression
+  fail_on_new_nondeterminism: true
+  fail_on_new_payload_breach: true

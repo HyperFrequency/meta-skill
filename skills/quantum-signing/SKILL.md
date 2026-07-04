@@ -1,18 +1,39 @@
 ---
 name: quantum-signing
-version: 0.1.0
+version: 0.2.0
 description: |
-  Implement quantum-resistant (post-quantum) cryptographic signing in JavaScript with the
-  agentic-jujutsu QuantumSigner (ML-DSA-65 / NIST FIPS 204) and SHA3-512 fingerprints, for
-  signing/verifying agent operations, audit trails, commits, and learning trajectories.
-  Triggers: "quantum signing", "ML-DSA", "post-quantum", "operation signing", "quantum-resistant".
-  NOT for: standard/classical encryption (RSA, AES, ECDSA), TLS setup, password hashing, or
-  non-cryptographic integrity checks. For agent coordination use agent-coordination instead.
+  Implement quantum-resistant (post-quantum) cryptographic signing in JavaScript / Node / browser with
+  the agentic-jujutsu QuantumSigner (ML-DSA-65 / NIST FIPS 204) and SHA3-512 fingerprints, for
+  signing/verifying agent operations, audit trails, commits, and learning trajectories. This is the
+  JS/browser signing surface; the Rust harness / hybrid co-signing path (ML-KEM + ML-DSA, hybrid-only)
+  lives in rust-pq-crypto. Triggers: "quantum signing", "ML-DSA", "post-quantum", "operation signing",
+  "quantum-resistant", "sign an agent operation in JS/browser". NOT for: standard/classical encryption
+  (RSA, AES, ECDSA), TLS setup, password hashing, or non-cryptographic integrity checks; Rust PQ, PQ-TLS,
+  key encapsulation, or hybrid (classical+PQ) co-signing (use rust-pq-crypto); agent coordination (use
+  agent-coordination).
 ---
 
 # Quantum Signing
 
-Expert guidance for quantum-resistant cryptographic operations.
+Expert guidance for quantum-resistant cryptographic operations **in JavaScript / Node / browser**,
+using the `agentic-jujutsu` `QuantumSigner` (ML-DSA-65).
+
+## Scope & Boundary
+
+This skill is the **JS/browser** post-quantum signing surface. The **Rust** harness and the
+**hybrid** (classical + PQ paired) co-signing path are a separate skill.
+
+- **Signing runs in JavaScript / Node / browser** → you are in the right place.
+- **Signing or co-signing runs in the Rust harness**, or you need a **hybrid Ed25519 + ML-DSA
+  co-signature**, PQ key encapsulation (ML-KEM), PQ-TLS, or envelope encryption →
+  route to **`rust-pq-crypto`**.
+
+One doctrine note up front: the sibling `rust-pq-crypto` is **hybrid-only** — it always pairs a
+classical primitive with the PQ one, because the pure-Rust PQ crates are explicitly *unaudited*, so a
+break degrades to classical security instead of to zero. **This JS signer is pure ML-DSA-65, not
+hybrid** — a deliberate, documented limitation. For anything that must cross a trust boundary or
+survive a break in one PQ implementation, sign on the Rust hybrid path. Full rationale, the JS-vs-Rust
+decision table, and the anti-patterns live in `references/scope-and-hybrid.md`.
 
 ## Core Concepts
 
@@ -154,8 +175,10 @@ Details and code in `references/best-practices.md`:
 
 ## Related
 
+- `references/scope-and-hybrid.md` - JS-vs-Rust boundary, hybrid-only doctrine, routing rules
 - `references/usage-patterns.md` - End-to-end signing flows
 - `references/best-practices.md` - Key storage, rotation, verification
+- `rust-pq-crypto` - The Rust sibling: hybrid-only ML-KEM/ML-DSA, PQ-TLS, HPKE envelopes, tunnel hardening
 - `/agentic-flow` - Agent coordination commands
 - `agent-coordination` - QuantumDAG patterns
 - `agentsdb-patterns` - Learning with integrity

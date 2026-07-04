@@ -1,10 +1,10 @@
 ---
 name: dspy
-description: Program language models declaratively with DSPy (Stanford NLP) instead of hand-writing prompts. Use when building multi-stage LM systems (RAG, agents, classifiers, pipelines), when you want prompts/few-shot examples optimized automatically from data via teleprompters (BootstrapFewShot, MIPRO, COPRO), or when you need portable, type-safe Signatures that work across LMs. Covers modules (Predict, ChainOfThought, ReAct, ProgramOfThought), optimizers, metrics, evaluation, and the modern dspy.LM provider setup. Do NOT use for one-off manual prompts, simple single-call chatbots, or when you have no eval data/metric to optimize against (use plain SDK calls or the claude-api skill instead); for prebuilt integration chains prefer LangChain; for cross-framework strategy porting see strategy-translator.
-version: 1.1.0
+description: Program language models declaratively with DSPy (Stanford NLP) instead of hand-writing prompts. Use when building multi-stage LM systems (RAG, agents, classifiers, pipelines), when you want prompts/few-shot examples optimized automatically from data via teleprompters (BootstrapFewShot, MIPRO, COPRO, and GEPA reflective prompt evolution), or when you need portable, type-safe Signatures that work across LMs. Covers modules (Predict, ChainOfThought, ReAct, ProgramOfThought), optimizers, metrics, evaluation, and the modern dspy.LM provider setup. Do NOT use for one-off manual prompts, simple single-call chatbots, or when you have no eval data/metric to optimize against (use plain SDK calls or the claude-api skill instead); for prebuilt integration chains prefer LangChain; for cross-framework strategy porting see strategy-translator; to run GEPA on raw prompt components OUTSIDE a DSPy program (non-Python evals, ProcessAdapter over an eval binary) use the gepa-evolve skill instead.
+version: 1.2.0
 author: Orchestra Research
 license: MIT
-tags: [Prompt Engineering, DSPy, Declarative Programming, RAG, Agents, Prompt Optimization, LM Programming, Stanford NLP, Automatic Optimization, Modular AI]
+tags: [Prompt Engineering, DSPy, Declarative Programming, RAG, Agents, Prompt Optimization, LM Programming, Stanford NLP, Automatic Optimization, Modular AI, GEPA, Reflective Prompt Evolution]
 dependencies: [dspy, openai, anthropic]
 ---
 
@@ -69,7 +69,8 @@ print(response.reasoning, response.answer)   # "...", "Paris"
   them by subclassing `dspy.Module` and writing a `forward()`.
 - **Optimizers (teleprompters)** — compile a module against `trainset` + `metric`
   to learn instructions and few-shot demos: `BootstrapFewShot` (quick),
-  `MIPRO`/`COPRO` (instruction search), `BootstrapFinetune` (weight tuning).
+  `MIPRO`/`COPRO` (instruction search), `GEPA` (reflective instruction evolution —
+  needs a feedback metric), `BootstrapFinetune` (weight tuning).
 - **Metrics & Evaluate** — a `metric(example, pred, trace=None)` callable plus
   `dspy.evaluate.Evaluate` to score and compare programs.
 
@@ -77,8 +78,11 @@ print(response.reasoning, response.answer)   # "...", "Paris"
 
 - `references/modules.md` — every module (Predict, ChainOfThought, ReAct,
   ProgramOfThought, MultiChainComparison, Retry), composition, batching, save/load.
-- `references/optimizers.md` — BootstrapFewShot, MIPRO, COPRO, KNNFewShot,
+- `references/optimizers.md` — BootstrapFewShot, MIPRO, COPRO, GEPA, KNNFewShot,
   BootstrapFinetune; metric design; train/val/test workflow; pitfalls.
+- `references/gepa.md` — GEPA (reflective prompt evolution) in depth: the
+  feedback-metric contract, budget/reflection_lm params, the loop, results
+  inspection, and `dspy.GEPA` vs. the standalone `gepa-evolve` engine.
 - `references/examples.md` — end-to-end RAG, agents, classifiers, multi-stage
   pipelines, and a production customer-support bot.
 - `references/configuration.md` — LM provider setup (Anthropic/OpenAI/Ollama),
