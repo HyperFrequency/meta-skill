@@ -1,0 +1,101 @@
+# Class 3 (agent/session) criteria schema — registered example.
+# This is DATA registered in the scorer registry, pinned by criteria_version.
+# The runner scores each thread against it; the threshold is the regression gate.
+# Model-graded assertions delegate to judge-panel (never an inline judge).
+
+criteria_version: "class3-v1"          # bumped only via disjoint-write-scope (see meta-loop.md)
+class: 3
+level: thread                          # scores at thread level; session/experiment are rollups
+threshold: 0.75                        # weighted thread score >= threshold => thread PASS
+
+# ---- deterministic pre-gate: hard-fail short-circuits before any judge runs ----
+pre_gate:
+  - id: tool_correctness
+    kind: deterministic
+    metric: toolset_f1                 # F1 over (tool_name) tuples vs expected set
+    order_sensitive: false
+    gold: expected_tool_calls          # dataset item field
+    hard_fail_below: 0.5               # thread scores 0 and skips judges if below
+  - id: argument_correctness
+    kind: deterministic
+    metric: arg_match                  # schema/exact match on structured args
+    gold: expected_arguments
+    hard_fail_below: 0.5
+  - id: user_frustration_floor
+    kind: model                        # judge, but evaluated in the pre-gate for the floor
+    metric: degeneration.frustration
+    hard_fail_above: 0.7               # rising-frustration degeneration => thread fails
+
+# ---- weighted assertions: combine into the thread score ----
+assertions:
+  - id: task_completion
+    kind: model
+    weight: 0.30
+    judge_panel:
+      rubric: rubrics/task_completion.md
+      judges: [gpt-judge, claude-judge, oss-judge]   # >=3, odd
+      topology: independent
+      aggregation: median
+    gold: goal_statement
+
+  - id: plan_adherence
+    kind: model
+    weight: 0.15
+    judge_panel:
+      rubric: rubrics/plan_adherence.md
+      judges: [gpt-judge, claude-judge, oss-judge]
+      topology: independent
+      aggregation: median
+    # self-referential: judged vs the agent's own stated plan
+
+  - id: trajectory_accuracy
+    kind: model
+    weight: 0.20
+    judge_panel:
+      rubric: rubrics/trajectory_accuracy.md
+      judges: [gpt-judge, claude-judge, oss-judge]
+      topology: independent
+      aggregation: median
+    gold: ideal_path            # optional; falls back to reasonable-path rubric if absent
+
+  - id: coherence
+    kind: model
+    weight: 0.12
+    judge_panel:
+      rubric: rubrics/coherence.md
+      judges: [gpt-judge, claude-judge, oss-judge]
+      topology: independent
+      aggregation: median
+    scope: whole_thread         # opik evaluate_threads shape
+
+  - id: knowledge_retention
+    kind: model
+    weight: 0.13
+    judge_panel:
+      rubric: rubrics/knowledge_retention.md
+      judges: [gpt-judge, claude-judge, oss-judge]
+      topology: independent
+      aggregation: median
+    scope: whole_thread
+
+  - id: step_efficiency
+    kind: metric
+    weight: 0.10
+    metric: steps_over_budget   # penalizes waste ABOVE the per-tier budget on SOLVED threads only
+    budget_by_tier:             # not raw minimization
+      easy: 8
+      medium: 16
+      hard: 32
+
+# ---- tiering + trials (see runner.md and regression-gate.md) ----
+tiers: [easy, medium, hard]
+trials_per_item: 3              # N>=3 so regressions beat LLM noise
+tier1_core:                     # the exact-match, gated held-out split
+  metrics: [tool_correctness, argument_correctness]
+  held_out_split: gated         # contamination control (GAIA design)
+  solve_rate_noise_band: 0.03   # candidate must not drop tier-1 solve-rate beyond this
+
+# ---- cost/step regression conditions ----
+budgets:
+  per_thread_cost_multiplier_vs_baseline: 1.25   # fail if candidate costs >1.25x baseline
+  per_thread_step_multiplier_vs_baseline: 1.5
