@@ -1,5 +1,16 @@
 # AutoGPT Troubleshooting Guide
 
+## Caveats & version notes
+
+- **Heavy setup.** A full local stack runs Docker + PostgreSQL + Redis +
+  RabbitMQ; the first `docker compose up -d --build` typically takes 30+ minutes
+  and can fail on resource-constrained machines (low RAM/disk). Budget resources
+  before starting, and see the memory/OOM fixes below if the executor is killed.
+- **Fast-moving API.** The Platform's REST/WebSocket surface and block APIs
+  evolve rapidly. Treat endpoint paths, block names, and code samples in this
+  skill as a starting point — verify them against the version you cloned
+  (`git describe --tags`) before relying on them in automation.
+
 ## Installation Issues
 
 ### Docker compose fails

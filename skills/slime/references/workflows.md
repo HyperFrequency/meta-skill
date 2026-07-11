@@ -4,6 +4,24 @@ Step-by-step recipes for installation and the three primary training workflows.
 For exhaustive argument/data-structure details see `api-reference.md`; for failure
 modes see `troubleshooting.md`.
 
+## Hardware requirements
+
+slime needs GPUs for **both** Megatron training and SGLang rollout at once — size for
+both, or share them with `--colocate`.
+
+- **Minimum**: ~2x A100 80 GB (160 GB total) for a ~7B dense model run with `--colocate`.
+- **Larger dense (30–70B) and MoE models**: multi-node. Full-parameter 70B RL needs far
+  more than a single 4-GPU node once fp32 master weights + Adam optimizer states + SGLang
+  KV cache are counted — plan for 8+ GPUs across nodes and shard with TP/PP plus Megatron's
+  distributed optimizer.
+- **Multi-node**: InfiniBand required for cross-node NCCL weight-sync (see
+  `troubleshooting.md` → weight-sync).
+- **Checkpoint storage**: NVMe, 5+ TB free for large-model checkpoints.
+
+**Cost**: a single GPU node runs roughly $10–25/hr on budget clouds (more on
+hyperscalers); multi-node scales ~linearly. RL post-training runs are long — budget for
+hours-to-days.
+
 ## Installation
 
 ```bash

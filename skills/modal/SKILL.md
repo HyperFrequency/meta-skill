@@ -1,7 +1,7 @@
 ---
 name: modal
 description: "Serverless GPU cloud (Modal) for ML workloads — on-demand T4–B200 GPUs, infra defined in Python, auto-scaling web endpoints, batch/scheduled jobs, pay-per-second with scale-to-zero. Use when you need GPU compute or want to deploy a model as an API without managing servers. NOT for long-lived stateful pods or reserved GPUs (use RunPod / Lambda Labs), multi-cloud cost arbitrage (SkyPilot), complex multi-service clusters (Kubernetes), or pure CPU/local work that needs no cloud GPU."
-version: 1.1.0
+version: 1.2.0
 author: Orchestra Research
 license: MIT
 tags: [Infrastructure, Serverless, GPU, Cloud, Deployment, Modal]
@@ -107,6 +107,7 @@ warm-container example.
 - **[Core patterns](references/core-patterns.md)** — images, volumes, web endpoints, batching, secrets, scheduling, parallel `.map`, config, deployed-function lookup.
 - **[Advanced usage](references/advanced-usage.md)** — multi-GPU/distributed training, cost optimization, sandboxes, production deployment, observability.
 - **[Troubleshooting](references/troubleshooting.md)** — image builds, GPU OOM, cold starts, volumes, endpoints, secrets, scheduling, common error messages.
+- **[Long-running & scale](references/long-running-and-scale.md)** — disconnect-safe training (`deploy` + `from_name().spawn()`), memory snapshots, multi-node clusters, `Dict`/`Queue`, sandbox snapshots, parameterized classes.
 
 ## Resources
 

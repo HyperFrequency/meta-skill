@@ -254,6 +254,13 @@ Mamba's CUDA kernels already use flash-attention-style optimizations:
 - Recomputation in backward pass
 - No intermediate activation storage
 
+**Environment conflict**: Do not install the separate `flash-attn` package in
+the same environment as `mamba-ssm`. Both compile custom CUDA kernels that can
+clash at build/runtime. Mamba does not need `flash-attn` — its own kernels
+already provide the flash-attention-style optimizations above. If a project
+genuinely requires both, isolate them in separate virtual environments or
+containers.
+
 ## Long Context Training
 
 ### Sequence Length Progression

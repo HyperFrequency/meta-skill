@@ -23,6 +23,17 @@ pip install auto-gptq --no-build-isolation
 sudo apt-get install python3-dev
 ```
 
+### Environment conflicts (bitsandbytes)
+Do not install `auto-gptq` alongside `bitsandbytes` in the same environment.
+Both patch the quantization CUDA kernels, and version mismatches surface as
+opaque CUDA errors at load or generate time. Use separate virtual environments
+(one for GPTQ deployment, one for bitsandbytes 8-bit/on-the-fly workflows).
+```bash
+# Keep them isolated
+python -m venv .venv-gptq && . .venv-gptq/bin/activate
+pip install auto-gptq transformers accelerate
+```
+
 ## Runtime Issues
 
 ### Slow inference

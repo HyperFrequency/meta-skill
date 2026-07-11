@@ -488,3 +488,20 @@ curl http://localhost:30000/metrics | grep duration
 - **8× cost reduction**
 
 **Recommendation**: Target batch size 64-256 for optimal cost/latency.
+
+## Environment Isolation
+
+### Do not co-locate SGLang and vLLM
+
+SGLang and vLLM both pre-allocate a large static fraction of GPU memory at
+startup (SGLang via `--mem-fraction-static`, default ~0.9). Running both
+servers against the same GPU — or importing both in one process — makes them
+fight over the allocator and OOM immediately.
+
+- **Keep them in separate environments or containers.** Give each its own
+  process and, ideally, its own GPU (or an isolated MIG slice / `CUDA_VISIBLE_DEVICES` split).
+- If you must share a single GPU, lower each server's memory fraction so the
+  sum stays under total VRAM (e.g. `--mem-fraction-static 0.4` for SGLang and a
+  matching cap on vLLM), and expect reduced throughput and cache capacity.
+- Pin dependencies separately: SGLang and vLLM often require different pinned
+  FlashInfer / CUDA / torch builds, so a shared virtualenv tends to break one of them.

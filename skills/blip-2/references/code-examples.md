@@ -84,6 +84,35 @@ model = Blip2ForConditionalGeneration.from_pretrained(
 )
 ```
 
+## Basic captioning & VQA (LAVIS)
+
+The LAVIS API differs from transformers: images pass through `vis_processors["eval"]`,
+and `model.generate` takes a dict (not tensor kwargs) and returns a `list[str]`.
+
+```python
+import torch
+from lavis.models import load_model_and_preprocess
+from PIL import Image
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model, vis_processors, txt_processors = load_model_and_preprocess(
+    name="blip2_opt",
+    model_type="pretrain_opt2.7b",   # or pretrain_opt6.7b, pretrain_flant5xl, pretrain_flant5xxl
+    is_eval=True,
+    device=device,
+)
+
+image = Image.open("photo.jpg").convert("RGB")
+image = vis_processors["eval"](image).unsqueeze(0).to(device)
+
+# Captioning
+caption = model.generate({"image": image})           # -> list[str]
+
+# VQA (prompt threaded through txt_processors)
+question = txt_processors["eval"]("What is in this image?")
+answer = model.generate({"image": image, "prompt": question})
+```
+
 ## Image-text matching (LAVIS)
 
 ```python

@@ -58,6 +58,17 @@ docs = loader.load()
 # Markdown
 loader = UnstructuredMarkdownLoader("README.md")
 docs = loader.load()
+
+# GitHub repo files (requires a GitHub personal access token)
+from langchain_community.document_loaders import GithubFileLoader
+
+loader = GithubFileLoader(
+    repo="langchain-ai/langchain",
+    branch="master",
+    access_token="ghp_...",                    # GitHub PAT
+    file_filter=lambda path: path.endswith(".py"),
+)
+docs = loader.load()
 ```
 
 ### 2. Text splitting
@@ -91,6 +102,21 @@ text_splitter = CharacterTextSplitter(
     chunk_overlap=200,
     separator="\n\n"
 )
+
+# Code-aware (splits on language syntax: functions, classes, imports)
+from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
+
+code_splitter = RecursiveCharacterTextSplitter.from_language(
+    language=Language.PYTHON,   # also JS, TS, GO, RUST, JAVA, MARKDOWN, ...
+    chunk_size=500,
+    chunk_overlap=0,
+)
+# langchain_text_splitters.PythonCodeTextSplitter is the older, Python-only equivalent.
+
+# Semantic (splits on meaning shifts rather than a fixed character count)
+from langchain_experimental.text_splitter import SemanticChunker
+
+semantic_splitter = SemanticChunker(embeddings)  # pass an embeddings model
 ```
 
 **Chunk size recommendations**:

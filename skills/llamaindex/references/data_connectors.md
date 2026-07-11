@@ -63,6 +63,45 @@ reader = GithubRepositoryReader(
 documents = reader.load_data(branch="main")
 ```
 
+### Database (SQL)
+
+```bash
+pip install llama-index-readers-database
+```
+
+```python
+from llama_index.readers.database import DatabaseReader
+
+# Connect via URI (Postgres, MySQL, SQLite, ... any SQLAlchemy URL)
+reader = DatabaseReader(uri="postgresql://user:pass@localhost:5432/db")
+
+# Each returned row becomes one Document; supply the SELECT at load time
+documents = reader.load_data(query="SELECT title, body FROM articles")
+```
+
+Note: the constructor param is `uri=` (not `sql_database_uri`). You can instead
+pass a SQLAlchemy `engine=`, a prebuilt `sql_database=SQLDatabase(...)`, or the
+discrete `scheme/host/port/user/password/dbname` args. `load_data(query=...)`
+runs the query and maps each row to a Document.
+
+### JSON / JSONL files
+
+```bash
+pip install llama-index-readers-json
+```
+
+```python
+from llama_index.readers.json import JSONReader
+
+reader = JSONReader(is_jsonl=False)            # is_jsonl=True for .jsonl files
+documents = reader.load_data(input_file="data.json")
+```
+
+Note: `load_data` reads a **local file path** (`input_file`), not a URL — to
+ingest a JSON API response, fetch it to a file first (or build `Document`
+objects yourself). `levels_back` / `collapse_length` control how deeply nested
+structure is flattened into the embedded text.
+
 ## LlamaHub connectors
 
 Visit https://llamahub.ai for 300+ connectors:

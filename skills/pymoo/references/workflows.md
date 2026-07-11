@@ -60,7 +60,7 @@ from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.visualization.pcp import PCP
 
 problem = get_problem("dtlz2", n_obj=5)
-ref_dirs = get_reference_directions("das-dennis", n_obj=5, n_partitions=12)
+ref_dirs = get_reference_directions("das-dennis", n_dim=5, n_partitions=12)
 algorithm = NSGA3(ref_dirs=ref_dirs)
 result = minimize(problem, algorithm, ('n_gen', 300), seed=1)
 

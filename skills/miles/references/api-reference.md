@@ -11,6 +11,17 @@ miles is an enterprise-grade RL framework built on slime, adding advanced featur
 
 **Note**: miles inherits slime's configuration system. See [slime API Reference](../../slime/references/api-reference.md) for base arguments.
 
+## Hardware Requirements
+
+miles workloads target datacenter GPUs with FP8 support (H100/H200). Size the cluster to the model:
+
+- **Minimum**: 4x H100 80GB (320 GB total VRAM) for 7B models
+- **Recommended**: 8x H100 80GB (640 GB total VRAM) for 70B+ models
+- **1TB+ MoE models**: multi-node H200 clusters with InfiniBand interconnect
+- **Storage**: NVMe with 10+ TB free for checkpoints
+
+**Cost planning**: a single 8x H100 node runs ~$25-50/hr; multi-node runs for large models can reach $500-2000+ per run. Budget accordingly before launching long rollouts, and cross-check the INT4 VRAM table below to confirm a target model fits the chosen node count.
+
 ## Core Data Structures
 
 miles uses the same `Sample` dataclass as slime with the `rollout_routed_experts` field for MoE routing replay.

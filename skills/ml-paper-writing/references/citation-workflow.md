@@ -8,6 +8,7 @@ This reference provides a complete workflow for managing citations programmatica
 
 - [Why Citation Verification Matters](#why-citation-verification-matters)
 - [Citation APIs Overview](#citation-apis-overview)
+- [Exa MCP for Paper Search (Optional)](#exa-mcp-for-paper-search-optional)
 - [Verified Citation Workflow](#verified-citation-workflow)
 - [Python Implementation](#python-implementation)
 - [BibTeX Management](#bibtex-management)
@@ -65,6 +66,47 @@ Need open data, bulk access? → OpenAlex
 ### No Official Google Scholar API
 
 Google Scholar has no official API. Scraping violates ToS. Use SerpApi ($75-275/month) only if Semantic Scholar coverage is insufficient.
+
+---
+
+## Exa MCP for Paper Search (Optional)
+
+_Portions adapted from openscience (Apache-2.0)._
+
+The APIs above are sufficient on their own. If you also want real-time natural-language
+academic search from inside the agent, install **Exa MCP** as a search front-end. Exa only
+*finds* candidates — always verify each result with Semantic Scholar (existence in 2+ sources)
+and fetch BibTeX via DOI/CrossRef as described below. Never cite an Exa hit directly.
+
+**Claude Code:**
+
+```bash
+claude mcp add exa -- npx -y mcp-remote "https://mcp.exa.ai/mcp"
+```
+
+**Cursor / VS Code** (add to MCP settings):
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+
+Example searches Exa handles well:
+
+- "Find papers on RLHF for language models published after 2023"
+- "Search for transformer architecture papers by Vaswani"
+- "Get recent work on sparse autoencoders for interpretability"
+
+Feed each candidate into the Verified Citation Workflow below: confirm it exists in Semantic
+Scholar + arXiv/CrossRef, retrieve BibTeX programmatically via DOI, then verify the claim you
+are citing actually appears in the paper. Any step that fails → mark a placeholder and tell the
+scientist.
 
 ---
 

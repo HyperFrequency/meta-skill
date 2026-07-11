@@ -342,6 +342,8 @@ Stabilize training:
 
 **Training recipes**: See [references/training-recipes.md](references/training-recipes.md) for complete hyperparameter configurations for GPT/LLaMA/Mixtral architectures.
 
+**Environment & conflicts**: See [references/environment-and-conflicts.md](references/environment-and-conflicts.md) for dependency-conflict gotchas (e.g. co-installing DeepSpeed and Apex) and container guidance.
+
 ## Hardware requirements
 
 - **GPU**: NVIDIA Ampere+ (A100, H100, B200)

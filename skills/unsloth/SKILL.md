@@ -113,6 +113,7 @@ Detailed docs live in `references/` (scraped from the official Unsloth docs):
 - `llms.md` — compact link map of all 136 documentation pages (start here to locate a topic).
 - `llms-txt.md` — full documentation text, lightly formatted.
 - `llms-full.md` — full documentation incl. complete code blocks (verified source for the snippets above).
+- `packing-and-new-tokens.md` — two specifics the scraped docs omit: `packing = True`, and calling `add_new_tokens` before `get_peft_model`.
 
 Search these with `grep` for a topic (e.g. `grep -n "GRPO" references/llms-full.md`) and read the matching span, rather than loading whole files.
 

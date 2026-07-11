@@ -303,6 +303,23 @@ else:
 
 **Rule**: If load imbalance persists, increase coefficient
 
+### Router Z-Loss (training stability)
+
+The aux loss balances expert *usage*; a separate **router z-loss** regularizes the *magnitude* of the router logits so they do not blow up (large logits cause fp16 overflow and erratic routing). This is the `router z-loss coefficient` referenced under Troubleshooting below. Standard formula (ST-MoE / Switch Transformers):
+
+```python
+def router_z_loss(router_logits):
+    """Penalize large router logits: logsumexp over experts, squared, mean over tokens."""
+    return torch.logsumexp(router_logits, dim=-1).pow(2).mean()
+```
+
+Add it as a third term in the training objective alongside the language-model loss and the load-balancing aux loss:
+
+```python
+total_loss = lm_loss + moe_loss_coeff * aux_loss + z_loss_coeff * router_z_loss(gate_logits)
+# typical: moe_loss_coeff = 0.01, z_loss_coeff = 0.001
+```
+
 ### Expert Count Selection
 
 More experts = more capacity, but with diminishing returns and higher overfitting risk on small datasets. Match expert count to data diversity:

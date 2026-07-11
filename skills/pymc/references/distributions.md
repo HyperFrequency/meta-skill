@@ -187,7 +187,7 @@ Multivariate distributions define joint probability distributions over vector-va
 
 ### Specialized Multivariate Distributions
 
-**`pm.LKJCorr(name, n, eta)`** - LKJ correlation matrix prior (for correlation matrices)
+**`pm.LKJCorr(name, n, eta)`** - LKJ correlation matrix prior (for correlation matrices); `eta=1` is uniform over correlation matrices, `eta>1` concentrates toward the identity (weaker off-diagonal correlations)
 
 **`pm.LKJCholeskyCov(name, n, eta, sd_dist)`** - LKJ prior with Cholesky decomposition
 

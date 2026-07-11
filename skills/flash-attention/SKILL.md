@@ -342,6 +342,8 @@ Flash Attention uses float16/bfloat16 for speed. Float32 not supported.
 
 **Performance benchmarks**: See [references/benchmarks.md](references/benchmarks.md) for detailed speed and memory comparisons across GPUs and sequence lengths.
 
+**Known conflicts**: See [references/known-conflicts.md](references/known-conflicts.md) for environment issues such as flash-attn vs mamba/causal-conv1d CUDA kernel clashes.
+
 ## Hardware requirements
 
 - **GPU**: NVIDIA Ampere+ (A100, A10, A30) or AMD MI200+

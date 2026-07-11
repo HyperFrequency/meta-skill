@@ -1,6 +1,7 @@
 ---
 name: infographics
-description: "Create professional infographics using Nano Banana Pro AI with smart iterative refinement. Uses Gemini 3 Pro for quality review. Integrates research-lookup and web search for accurate data. Supports 10 infographic types, 8 industry styles, and colorblind-safe palettes."
+version: 0.1.0
+description: "Create professional infographics using Nano Banana Pro AI with smart iterative refinement. Uses Gemini 3 Pro for quality review. Integrates research-lookup and web search for accurate data. Supports 10 infographic types, 8 industry styles, and colorblind-safe palettes. Not for technical diagrams or circuit designs—use scientific-schematics for those."
 allowed-tools: Read Write Edit Bash
 ---
 
@@ -19,16 +20,9 @@ Infographics are visual representations of information, data, or knowledge desig
 - Professional-ready output in minutes
 - No design skills required
 
-**Quality Thresholds by Document Type:**
-| Document Type | Threshold | Description |
-|---------------|-----------|-------------|
-| marketing | 8.5/10 | Marketing materials - must be compelling |
-| report | 8.0/10 | Business reports - professional quality |
-| presentation | 7.5/10 | Slides, talks - clear and engaging |
-| social | 7.0/10 | Social media content |
-| internal | 7.0/10 | Internal use |
-| draft | 6.5/10 | Working drafts |
-| default | 7.5/10 | General purpose |
+The review threshold is set by `--doc-type` (e.g. `marketing` 8.5/10, `report`
+8.0, `presentation`/`default` 7.5, `social`/`internal` 7.0, `draft` 6.5). Full
+table and rubric: **`references/quality_review.md`**.
 
 **Simply describe what you want, and Nano Banana Pro creates it.**
 
@@ -37,45 +31,28 @@ Infographics are visual representations of information, data, or knowledge desig
 Generate any infographic by simply describing it:
 
 ```bash
-# Generate a list infographic (default threshold 7.5/10)
+# Basic: list infographic (default threshold 7.5/10)
 python skills/infographics/scripts/generate_infographic.py \
   "5 benefits of regular exercise" \
   -o figures/exercise_benefits.png --type list
 
-# Generate for marketing (highest threshold: 8.5/10)
-python skills/infographics/scripts/generate_infographic.py \
-  "Product features comparison" \
-  -o figures/product_comparison.png --type comparison --doc-type marketing
-
-# Generate with corporate style
-python skills/infographics/scripts/generate_infographic.py \
-  "Company milestones 2010-2025" \
-  -o figures/timeline.png --type timeline --style corporate
-
-# Generate with colorblind-safe palette
+# With style + colorblind-safe palette + higher threshold
 python skills/infographics/scripts/generate_infographic.py \
   "Heart disease statistics worldwide" \
-  -o figures/health_stats.png --type statistical --palette wong
+  -o figures/health_stats.png --type statistical \
+  --style healthcare --palette wong --doc-type report
 
-# Generate WITH RESEARCH for accurate, up-to-date data
+# WITH RESEARCH for accurate, up-to-date data
 python skills/infographics/scripts/generate_infographic.py \
   "Global AI market size and growth projections" \
   -o figures/ai_market.png --type statistical --research
 ```
 
-**What happens behind the scenes:**
-1. **(Optional) Research**: Perplexity Sonar gathers accurate facts, statistics, and data
-2. **Generation 1**: Nano Banana Pro creates initial infographic following design best practices
-3. **Review 1**: **Gemini 3 Pro** evaluates quality against document-type threshold
-4. **Decision**: If quality >= threshold → **DONE** (no more iterations needed!)
-5. **If below threshold**: Improved prompt based on critique, regenerate
-6. **Repeat**: Until quality meets threshold OR max iterations reached
-
-**Smart Iteration Benefits:**
-- ✅ Saves API calls if first generation is good enough
-- ✅ Higher quality standards for marketing materials
-- ✅ Faster turnaround for drafts/internal use
-- ✅ Appropriate quality for each use case
+**What happens behind the scenes:** (optional) Perplexity Sonar gathers facts →
+Nano Banana Pro generates → Gemini 3 Pro scores against the document-type
+threshold → early-stop if it passes, otherwise improve the prompt and regenerate
+up to `--iterations`. This saves API calls when the first try is good enough
+while holding marketing materials to a higher bar.
 
 **Output**: Versioned images plus a detailed review log with quality scores, critiques, and early-stop information.
 
@@ -101,82 +78,35 @@ Use the **infographics** skill when:
 
 ## Research Integration
 
-### Automatic Data Gathering (`--research`)
+Add `--research` to automatically gather accurate, up-to-date facts and
+statistics with **Perplexity Sonar Pro** before generating. Best for
+statistical, market, scientific, or current-events topics where accuracy
+matters; skip it for simple conceptual or internal infographics or when you
+already supply all the data. Research is folded into the prompt and saved to
+`{name}_research.json`.
 
-When creating infographics that require accurate, up-to-date data, use the `--research` flag to automatically gather facts and statistics using **Perplexity Sonar Pro**.
-
-```bash
-# Research and generate statistical infographic
-python skills/infographics/scripts/generate_infographic.py \
-  "Global renewable energy adoption rates by country" \
-  -o figures/renewable_energy.png --type statistical --research
-
-# Research for timeline infographic
-python skills/infographics/scripts/generate_infographic.py \
-  "History of artificial intelligence breakthroughs" \
-  -o figures/ai_history.png --type timeline --research
-
-# Research for comparison infographic
-python skills/infographics/scripts/generate_infographic.py \
-  "Electric vehicles vs hydrogen vehicles comparison" \
-  -o figures/ev_hydrogen.png --type comparison --research
-```
-
-### What Research Provides
-
-The research phase automatically:
-
-1. **Gathers Key Facts**: 5-8 relevant facts and statistics about the topic
-2. **Provides Context**: Background information for accurate representation
-3. **Finds Data Points**: Specific numbers, percentages, and dates
-4. **Cites Sources**: Mentions major studies or sources
-5. **Prioritizes Recency**: Focuses on 2023-2026 information
-
-### When to Use Research
-
-**Enable research (`--research`) for:**
-- Statistical infographics requiring accurate numbers
-- Market data, industry statistics, or trends
-- Scientific or medical information
-- Current events or recent developments
-- Any topic where accuracy is critical
-
-**Skip research for:**
-- Simple conceptual infographics
-- Internal process documentation
-- Topics where you provide all the data in the prompt
-- Speed-critical generation
-
-### Research Output
-
-When research is enabled, additional files are created:
-- `{name}_research.json` - Raw research data and sources
-- Research content is automatically incorporated into the infographic prompt
+For the full when-to-use guidance, worked examples, and output schema, see
+**`references/research_integration.md`**.
 
 ---
 
 ## Infographic Types
 
-### 1. Statistical/Data-Driven (`--type statistical`)
+Pass the closest match to `--type`. Each type maps to a layout the generator
+optimizes for.
 
-Best for: Presenting numbers, percentages, survey results, and quantitative data.
-
-**Key Elements:** Charts (bar, pie, line, donut), large numerical callouts, data comparisons, trend indicators.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Global internet usage 2025: 5.5 billion users (68% of population), \
-   Asia Pacific 53%, Europe 15%, Americas 20%, Africa 12%" \
-  -o figures/internet_stats.png --type statistical --style technology
-```
-
----
-
-### 2. Timeline (`--type timeline`)
-
-Best for: Historical events, project milestones, company history, evolution of concepts.
-
-**Key Elements:** Chronological flow, date markers, event nodes, connecting lines.
+| `--type`       | Best for                                          | Key elements |
+|----------------|---------------------------------------------------|--------------|
+| `statistical`  | Numbers, percentages, survey/quantitative data    | Charts, large numeric callouts, trend indicators |
+| `timeline`     | Historical events, milestones, evolution          | Chronological flow, date markers, event nodes |
+| `process`      | Step-by-step instructions, workflows              | Numbered steps, arrows, action icons |
+| `comparison`   | Product/option comparisons, pros-cons, before-after | Side-by-side layout, check/cross indicators |
+| `list`         | Tips, facts, key points, quick reference          | Numbered/bulleted points, icons, hierarchy |
+| `geographic`   | Regional/location data, global trends             | Map visualization, color coding, legend |
+| `hierarchical` | Org structures, priority/importance ranking       | Pyramid/tree, distinct levels |
+| `anatomical`   | Complex systems via visual metaphor               | Central metaphor image, labeled parts |
+| `resume`       | Personal branding, CVs, portfolios                | Photo area, skills viz, timeline |
+| `social`       | Instagram/LinkedIn/X posts, shareable graphics    | Bold headline, minimal text, vibrant colors |
 
 ```bash
 python skills/infographics/scripts/generate_infographic.py \
@@ -185,245 +115,40 @@ python skills/infographics/scripts/generate_infographic.py \
   -o figures/ai_history.png --type timeline --style technology
 ```
 
----
-
-### 3. Process/How-To (`--type process`)
-
-Best for: Step-by-step instructions, workflows, procedures, tutorials.
-
-**Key Elements:** Numbered steps, directional arrows, action icons, clear flow.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "How to start a podcast: 1. Choose your niche, 2. Plan content, \
-   3. Set up equipment, 4. Record episodes, 5. Publish and promote" \
-  -o figures/podcast_process.png --type process --style marketing
-```
+For per-type prompt templates, layout patterns, and worked example prompts, see
+**`references/infographic_types.md`**.
 
 ---
 
-### 4. Comparison (`--type comparison`)
+## Styles & Palettes
 
-Best for: Product comparisons, pros/cons, before/after, option evaluation.
+Pass `--style` for an industry look and `--palette` for a colorblind-safe
+color set:
 
-**Key Elements:** Side-by-side layout, matching categories, check/cross indicators.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Electric vs Gas Cars: Fuel cost (lower vs higher), \
-   Maintenance (less vs more), Range (improving vs established)" \
-  -o figures/ev_comparison.png --type comparison --style nature
-```
-
----
-
-### 5. List/Informational (`--type list`)
-
-Best for: Tips, facts, key points, summaries, quick reference guides.
-
-**Key Elements:** Numbered or bulleted points, icons, clear hierarchy.
+- **`--style`**: `corporate`, `healthcare`, `technology`, `nature`,
+  `education`, `marketing`, `finance`, `nonprofit` — each maps to an
+  audience-appropriate color scheme.
+- **`--palette`**: `wong` (most widely recommended), `ibm` (IBM accessible),
+  `tol` (12-color extended for many categories) — colorblind-safe.
 
 ```bash
 python skills/infographics/scripts/generate_infographic.py \
-  "7 Habits of Highly Effective People: Be Proactive, \
-   Begin with End in Mind, Put First Things First, Think Win-Win, \
-   Seek First to Understand, Synergize, Sharpen the Saw" \
-  -o figures/habits.png --type list --style corporate
+  "Q4 Results" -o q4.png --type statistical --style corporate --palette wong
 ```
 
----
-
-### 6. Geographic (`--type geographic`)
-
-Best for: Regional data, demographics, location-based statistics, global trends.
-
-**Key Elements:** Map visualization, color coding, data overlays, legend.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Renewable energy adoption by region: Iceland 100%, Norway 98%, \
-   Germany 50%, USA 22%, India 20%" \
-  -o figures/renewable_map.png --type geographic --style nature
-```
-
----
-
-### 7. Hierarchical/Pyramid (`--type hierarchical`)
-
-Best for: Organizational structures, priority levels, importance ranking.
-
-**Key Elements:** Pyramid or tree structure, distinct levels, size progression.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Maslow's Hierarchy: Physiological, Safety, Love/Belonging, \
-   Esteem, Self-Actualization" \
-  -o figures/maslow.png --type hierarchical --style education
-```
-
----
-
-### 8. Anatomical/Visual Metaphor (`--type anatomical`)
-
-Best for: Explaining complex systems using familiar visual metaphors.
-
-**Key Elements:** Central metaphor image, labeled parts, connection lines.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Business as a human body: Brain=Leadership, Heart=Culture, \
-   Arms=Sales, Legs=Operations, Skeleton=Systems" \
-  -o figures/business_body.png --type anatomical --style corporate
-```
-
----
-
-### 9. Resume/Professional (`--type resume`)
-
-Best for: Personal branding, CVs, portfolio highlights, professional achievements.
-
-**Key Elements:** Photo area, skills visualization, timeline, contact info.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "UX Designer resume: Skills - User Research 95%, Wireframing 90%, \
-   Prototyping 85%. Experience - 2020-2022 Junior, 2022-2025 Senior" \
-  -o figures/resume.png --type resume --style technology
-```
-
----
-
-### 10. Social Media (`--type social`)
-
-Best for: Instagram, LinkedIn, Twitter/X posts, shareable graphics.
-
-**Key Elements:** Bold headline, minimal text, maximum impact, vibrant colors.
-
-```bash
-python skills/infographics/scripts/generate_infographic.py \
-  "Save Water, Save Life: 2.2 billion people lack safe drinking water. \
-   Tips: shorter showers, fix leaks, full loads only" \
-  -o figures/water_social.png --type social --style marketing
-```
-
----
-
-## Style Presets
-
-### Industry Styles (`--style`)
-
-| Style | Colors | Best For |
-|-------|--------|----------|
-| `corporate` | Navy, steel blue, gold | Business reports, finance |
-| `healthcare` | Medical blue, cyan, light cyan | Medical, wellness |
-| `technology` | Tech blue, slate, violet | Software, data, AI |
-| `nature` | Forest green, mint, earth brown | Environmental, organic |
-| `education` | Academic blue, light blue, coral | Learning, academic |
-| `marketing` | Coral, teal, yellow | Social media, campaigns |
-| `finance` | Navy, gold, green/red | Investment, banking |
-| `nonprofit` | Warm orange, sage, sand | Social causes, charities |
-
-```bash
-# Corporate style
-python skills/infographics/scripts/generate_infographic.py \
-  "Q4 Results" -o q4.png --type statistical --style corporate
-
-# Healthcare style
-python skills/infographics/scripts/generate_infographic.py \
-  "Patient Journey" -o journey.png --type process --style healthcare
-```
-
----
-
-## Colorblind-Safe Palettes
-
-### Available Palettes (`--palette`)
-
-| Palette | Colors | Description |
-|---------|--------|-------------|
-| `wong` | Orange, sky blue, green, blue, vermillion | Most widely recommended |
-| `ibm` | Ultramarine, indigo, magenta, orange, gold | IBM's accessible palette |
-| `tol` | 12-color extended palette | For many categories |
-
-```bash
-# Wong's colorblind-safe palette
-python skills/infographics/scripts/generate_infographic.py \
-  "Survey results by category" -o survey.png --type statistical --palette wong
-```
+For exact hex values, per-style swatches, and prompt snippets, see
+**`references/color_palettes.md`**.
 
 ---
 
 ## Smart Iterative Refinement
 
-### How It Works
+The generator regenerates only while quality is below the document-type
+threshold, then early-stops. Each run produces versioned images plus a JSON
+review log with scores and critiques.
 
-```
-┌─────────────────────────────────────────────────────┐
-│  1. Generate infographic with Nano Banana Pro       │
-│                    ↓                                │
-│  2. Review quality with Gemini 3 Pro                │
-│                    ↓                                │
-│  3. Score >= threshold?                             │
-│       YES → DONE! (early stop)                      │
-│       NO  → Improve prompt, go to step 1            │
-│                    ↓                                │
-│  4. Repeat until quality met OR max iterations      │
-└─────────────────────────────────────────────────────┘
-```
-
-### Quality Review Criteria
-
-Gemini 3 Pro evaluates each infographic on:
-
-1. **Visual Hierarchy & Layout** (0-2 points)
-   - Clear visual hierarchy
-   - Logical reading flow
-   - Balanced composition
-
-2. **Typography & Readability** (0-2 points)
-   - Readable text
-   - Bold headlines
-   - No overlapping
-
-3. **Data Visualization** (0-2 points)
-   - Prominent numbers
-   - Clear charts/icons
-   - Proper labels
-
-4. **Color & Accessibility** (0-2 points)
-   - Professional colors
-   - Sufficient contrast
-   - Colorblind-friendly
-
-5. **Overall Impact** (0-2 points)
-   - Professional appearance
-   - Free of visual bugs
-   - Achieves communication goal
-
-### Review Log
-
-Each generation produces a JSON review log:
-```json
-{
-  "user_prompt": "5 benefits of exercise...",
-  "infographic_type": "list",
-  "style": "healthcare",
-  "doc_type": "marketing",
-  "quality_threshold": 8.5,
-  "iterations": [
-    {
-      "iteration": 1,
-      "image_path": "figures/exercise_v1.png",
-      "score": 8.7,
-      "needs_improvement": false,
-      "critique": "SCORE: 8.7\nSTRENGTHS:..."
-    }
-  ],
-  "final_score": 8.7,
-  "early_stop": true,
-  "early_stop_reason": "Quality score 8.7 meets threshold 8.5"
-}
-```
+For the full loop diagram, the 5-category (10-point) Gemini review rubric, and
+the review-log schema, see **`references/quality_review.md`**.
 
 ---
 
@@ -471,37 +196,15 @@ Get an API key at: https://openrouter.ai/keys
 
 ## Prompt Engineering Tips
 
-### Be Specific About Content
+Be specific and include concrete data — vague prompts produce weak layouts.
 
-✓ **Good prompts** (specific, detailed):
-```
-"5 benefits of meditation: reduces stress, improves focus, 
-better sleep, lower blood pressure, emotional balance"
-```
+- ✓ `"5 benefits of meditation: reduces stress, improves focus, better sleep,
+  lower blood pressure, emotional balance"` — ✗ `"meditation infographic"`
+- ✓ `"Market growth from $10B (2020) to $45B (2025), CAGR 35%"` — ✗ `"market is growing"`
+- ✓ Name visual elements: `"Timeline showing 5 milestones with icons for each event"`
 
-✗ **Avoid vague prompts**:
-```
-"meditation infographic"
-```
-
-### Include Data Points
-
-✓ **Good**:
-```
-"Market growth from $10B (2020) to $45B (2025), CAGR 35%"
-```
-
-✗ **Vague**:
-```
-"market is growing"
-```
-
-### Specify Visual Elements
-
-✓ **Good**:
-```
-"Timeline showing 5 milestones with icons for each event"
-```
+For deeper guidance on hierarchy, layout, and typography, see
+**`references/design_principles.md`**.
 
 ---
 
@@ -512,6 +215,8 @@ For detailed guidance, load these reference files:
 - **`references/infographic_types.md`**: Extended templates for all 10+ types
 - **`references/design_principles.md`**: Visual hierarchy, layout, typography
 - **`references/color_palettes.md`**: Full palette specifications
+- **`references/quality_review.md`**: Thresholds, review rubric, log schema
+- **`references/research_integration.md`**: `--research` guidance, examples, output schema
 
 ---
 
@@ -531,33 +236,31 @@ For detailed guidance, load these reference files:
 **Problem**: Wrong infographic type generated
 - **Solution**: Always specify `--type` flag for consistent results
 
+**Problem**: Generation fails with a model-not-found / invalid-model error
+- **Solution**: The bundled script pins the image model slug
+  `google/gemini-3-pro-image-preview`; that preview slug was scheduled to retire
+  2026-06-25. Update `self.image_model` to the GA slug `google/gemini-3-pro-image`
+  in `scripts/generate_infographic_ai.py` (the review model stays
+  `google/gemini-3-pro`).
+
 ---
 
 ## Integration with Other Skills
 
-This skill works synergistically with:
-
 - **scientific-schematics**: For technical diagrams and flowcharts
 - **market-research-reports**: Infographics for business reports
 - **scientific-slides**: Infographic elements for presentations
-- **generate-image**: For non-infographic visual content
+- **generate-image**: For non-infographic visuals
 
 ---
 
 ## Quick Reference Checklist
 
-Before generating:
-- [ ] Clear, specific content description
-- [ ] Infographic type selected (`--type`)
-- [ ] Style appropriate for audience (`--style`)
-- [ ] Output path specified (`-o`)
-- [ ] API key configured
-
-After generating:
-- [ ] Review the generated image
-- [ ] Check the review log for scores
-- [ ] Regenerate with more specific prompt if needed
+- **Before**: specific content description, `--type` selected, `--style` suited
+  to audience, `-o` output path set, API key configured.
+- **After**: review the generated image, check the review log scores, regenerate
+  with a more specific prompt if needed.
 
 ---
 
-Use this skill to create professional, accessible, and visually compelling infographics using the power of Nano Banana Pro AI with intelligent quality review.
+Use this skill to create professional, accessible infographics with Nano Banana Pro AI and intelligent quality review.
